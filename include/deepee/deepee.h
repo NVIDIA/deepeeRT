@@ -37,13 +37,15 @@
    SP Rays and contexts are currently not supported. 
 */
 
+#pragma once
+
 #include <sys/types.h>
 #include <stdint.h>
 
 #ifdef _WIN32
-# if defined(primer_STATIC)
+# if defined(deepeeRT_STATIC)
 #  define DPR_INTERFACE /* nothing */
-# elif defined(primer_EXPORTS)
+# elif defined(deepeeRT_EXPORTS)
 #  define DPR_INTERFACE __declspec(dllexport)
 # else
 #  define DPR_INTERFACE __declspec(dllimport)
