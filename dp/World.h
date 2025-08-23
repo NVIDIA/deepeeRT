@@ -15,6 +15,8 @@ namespace dp {
           const std::vector<Group *> &groups,
           const DPRAffine            *d_transforms);
 
+    void traceRays(DPRRay *d_rays, DPRHit *d_hits, int numRays);
+    
     std::vector<Group *> const groups;
     const DPRAffine     *const d_transforms;
     Context             *const context;

@@ -82,3 +82,20 @@ DPRWorld dprCreateWorldDP(DPRContext _context,
   return (DPRWorld)new dp::World(context,groups,d_instanceTransforms);
 }
 
+DPR_API
+void dprTrace(/*! the world we want the rays to be traced against */
+              DPRWorld _world,
+              /*! *device* array of rays that need tracing */
+              DPRRay *d_rays,
+              /*! *device* array of where to store the hits */
+              DPRHit *d_hits,
+              /*! number of rays that need tracing. d_rays and
+                d_hits *must* have (at least) that many entires */
+              int numRays)
+{
+  dp::World *world = (dp::World *)_world;
+  world->traceRays(d_rays,d_hits,numRays);
+}
+
+
+

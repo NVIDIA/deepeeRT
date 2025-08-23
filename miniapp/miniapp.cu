@@ -52,13 +52,50 @@ namespace miniapp {
     return world;
   }
 
+
+  __global__
+  void g_shadeRays(vec4f *d_pixels,
+                   DPRRay *d_rays,
+                   DPRHit *d_hits,
+                   const vec2i &fbSize)
+  {
+    int ix = threadIdx.x+blockIdx.x*blockDim.x;
+    int iy = threadIdx.y+blockIdx.y*blockDim.y;
+    
+    if (ix >= fbSize.x) return;
+    if (iy >= fbSize.y) return;
+
+    Ray ray = (const Ray &)d_rays[ix+iy*fbSize.x];
+    vec3f color = vec3f(abs(ray.direction));
+    vec4f pixel = {color.x,color.y,color.z,1.f};
+    d_pixels[ix+iy*fbSize.x] = pixel;
+  }
+  
+  __global__
+  void g_generateRays(DPRRay *d_rays,
+                      const vec2i &fbSize,
+                      const Camera camera)
+  {
+    int ix = threadIdx.x+blockIdx.x*blockDim.x;
+    int iy = threadIdx.y+blockIdx.y*blockDim.y;
+    
+    if (ix >= fbSize.x) return;
+    if (iy >= fbSize.y) return;
+    
+    double u = ix+.5;
+    double v = iy+.5;
+    
+    Ray ray = camera.generateRay({u,v});
+    (Ray &)d_rays[ix+iy*fbSize.x] = ray;
+  }
+  
   void main(int ac, char **av)
   {
     double scale = 1e3f;
     std::string up = "y";
     std::string inFileName;
     int terrainRes = 10*1024;
-    vec2i imageRes = { 1024,1024 };
+    vec2i fbSize = { 1024,1024 };
     for (int i=1;i<ac;i++) {
       std::string arg = av[i];
       if (arg[0] != '-') {
@@ -66,8 +103,8 @@ namespace miniapp {
       } else if (arg == "-up") {
         up = av[++i];
       } else if (arg == "-or" || arg == "--output-res") {
-        imageRes.x = std::stoi(av[++i]);
-        imageRes.y = std::stoi(av[++i]);
+        fbSize.x = std::stoi(av[++i]);
+        fbSize.y = std::stoi(av[++i]);
       } else if (arg == "-tr" || arg == "--terrain-res") {
         terrainRes = std::stoi(av[++i]);
       } else if (arg == "-s" || arg == "--scale") {
@@ -86,7 +123,7 @@ namespace miniapp {
     object.translate(scale*(dx+dy)-object.center());
     
     Mesh terrain = generateTesselatedQuad(terrainRes,dx,dy,dz,2.f*scale);
-    Camera camera = generateCamera(imageRes,
+    Camera camera = generateCamera(fbSize,
                                    /* bounds to focus on */
                                    object.bounds(),
                                    /* point we're looking from*/
@@ -94,8 +131,25 @@ namespace miniapp {
                                    /* up for orienation */
                                    dz);
 
+    vec2i bs(32,32);
+    vec2i nb = divRoundUp(fbSize,bs);
+    
     DPRContext dpr = dprContextCreate(DPR_CONTEXT_GPU,0);
     DPRWorld world = createWorld(dpr,{&object,&terrain});
+
+    DPRRay *d_rays = 0;
+    cudaMalloc((void **)&d_rays,fbSize.x*fbSize.y*sizeof(DPRRay));
+    g_generateRays<<<bs,nb>>>(d_rays,fbSize,camera);
+    
+    DPRHit *d_hits = 0;
+    cudaMalloc((void **)&d_hits,fbSize.x*fbSize.y*sizeof(DPRHit));
+
+    dprTrace(world,d_rays,d_hits,fbSize.x*fbSize.y);
+    
+    vec4f *m_pixels = 0;
+    cudaMallocManaged((void **)&m_pixels,fbSize.x*fbSize.y*sizeof(vec4f));
+    g_shadeRays<<<bs,nb>>>(m_pixels,d_rays,d_hits,fbSize);
+
   }
 }
 

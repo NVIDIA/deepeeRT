@@ -14,7 +14,7 @@ namespace miniapp {
   };
   
   struct Camera {
-    inline __device__ Ray generateRay(vec2d pixel);
+    inline __device__ Ray generateRay(vec2d pixel) const;
     struct {
       vec3d v,du,dv;
     } origin, direction;
@@ -26,7 +26,7 @@ namespace miniapp {
                         const vec3d &up);
 
 
-  inline __device__ Ray Camera::generateRay(vec2d pixel)
+  inline __device__ Ray Camera::generateRay(vec2d pixel) const
   {
     Ray ray;
     ray.origin = origin.v+pixel.x*origin.du+pixel.y*origin.dv;

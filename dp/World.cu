@@ -14,6 +14,9 @@ namespace dp {
       groups(groups),
       d_transforms(d_transforms)
   {}
-  
+
+  void World::traceRays(DPRRay *d_rays, DPRHit *d_hits, int numRays)
+  { /* TODO */ }
+
 } // ::dp
 
