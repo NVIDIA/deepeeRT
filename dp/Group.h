@@ -25,6 +25,7 @@ namespace dp {
     PrimSpec        *d_primSpecs = 0;
     TrianglesDP::DD *d_geoms     = 0;
     std::vector<TrianglesDP *> geoms;
+    Context *const context;
   };
     
 } // ::dp

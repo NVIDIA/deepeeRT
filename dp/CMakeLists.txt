@@ -5,8 +5,12 @@ add_library(deepeeRT
   common.h
   Triangles.h
   Triangles.cu
+  World.h
+  World.cu
   Context.h
   Context.cpp
+  Group.h
+  Group.cu
   deepeeRT.cpp
 )
 find_package(CUDAToolkit REQUIRED)

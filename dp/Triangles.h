@@ -12,11 +12,11 @@ namespace dp {
   /*! a mesh of triangles, for a dp context, with vertices in doubles */
   struct TrianglesDP {
     struct DD {
-      uint64_t         userData      = 0;
-      vec3d           *d_vertexArray = 0;
-      vec3i           *d_indexArray  = 0;
-      int              vertexCount   = 0;
-      int              indexCount    = 0;
+      uint64_t userData;
+      vec3d   *d_vertexArray;
+      vec3i   *d_indexArray;
+      int      vertexCount;
+      int      indexCount;
     };
       
     TrianglesDP(Context         *context,
@@ -27,9 +27,14 @@ namespace dp {
                 int              indexCount);
 
     void fillBuilderInput(box3d *d_boxes, cudaStream_t stream);
-      
-    DD dd;
-    Context *const context;
+    DD getDD() const;
+     
+    uint64_t     const userData      = 0;
+    const vec3d *const d_vertexArray = 0;
+    const vec3i *const d_indexArray  = 0;
+    int          const vertexCount   = 0;
+    int          const indexCount    = 0;
+    Context     *const context;
   };
 
 } // ::dp

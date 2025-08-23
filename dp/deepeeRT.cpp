@@ -6,6 +6,7 @@
 #include "dp/Context.h"
 #include "dp/Triangles.h"
 #include "dp/Group.h"
+#include "dp/World.h"
 
 namespace dp {
 } // ::dp
@@ -57,5 +58,27 @@ DPRGroup dprCreateTrianglesGroup(DPRContext   _context,
     geoms.push_back(geom);
   }
   return (DPRGroup)new dp::TrianglesDPGroup(context,geoms);
+}
+
+
+DPR_API
+DPRWorld dprCreateWorldDP(DPRContext _context,
+                          DPRGroup   *instanceGroups,
+                          DPRAffine  *d_instanceTransforms,
+                          size_t      instanceCount)
+{
+  dp::Context *context = (dp::Context *)_context;
+  assert(context);
+  
+  assert(instanceCount == 1 && "instancing not yet implemented");
+  assert(d_instanceTransform == nullptr && "instancing not yet implemented");
+  
+  std::vector<dp::Group *> groups;
+  for (int i=0;i<(int)instanceCount;i++) {
+    dp::Group *group = (dp::Group *)instanceGroups[i];
+    assert(group);
+    groups.push_back(group);
+  }
+  return (DPRWorld)new dp::World(context,groups,d_instanceTransforms);
 }
 
