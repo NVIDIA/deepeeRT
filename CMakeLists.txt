@@ -38,4 +38,5 @@ endif()
 add_subdirectory(cuBQL EXCLUDE_FROM_ALL)
 
 add_subdirectory(dp)
+add_subdirectory(miniapp)
 

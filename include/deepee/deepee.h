@@ -72,7 +72,7 @@ typedef struct _DPRGroup         *DPRGroup;
 typedef struct _DPRWorld         *DPRWorld;
 typedef struct _DPRContext       *DPRContext;
 
-typedef enum { DPRContextGPU } DPRContextType;
+typedef enum { DPR_CONTEXT_GPU } DPRContextType;
 
 struct DPRint3 { int32_t x,y,z; };
 struct DPRvec3 { double  x,y,z; };
