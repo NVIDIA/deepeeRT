@@ -28,4 +28,18 @@ namespace dp {
 
   inline __cubql_both float abst(float f)   { return (f < 0.f) ? -f : f; }
   inline __cubql_both double abst(double f) { return (f < 0. ) ? -f : f; }
+
+  template<typename T>
+  bool isDevicePointer(T *ptr)
+  {
+    cudaPointerAttributes attributes = {};
+    // do NOT check for error: in CUDA<10, passing a host pointer will
+    // actually create a cuda error, so let's just call and then
+    // ignore/clear the error
+    cudaPointerGetAttributes(&attributes,(const void *)ptr);
+    cudaGetLastError();
+      
+    return attributes.devicePointer != 0;
+  }
+
 }

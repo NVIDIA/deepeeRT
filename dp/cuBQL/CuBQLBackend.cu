@@ -3,6 +3,8 @@
  
 #include "dp/cuBQL/CuBQLBackend.h"
 #include "dp/Context.h"
+#include "dp/Group.h"
+#include "dp/World.h"
 
 #include <cuBQL/bvh.h>
 #include <cuBQL/math/Ray.h>
@@ -19,20 +21,6 @@ namespace dp {
     using TriangleDP = cuBQL::triangle_t<double>;
     using RayTriangleIntersection = cuBQL::RayTriangleIntersection_t<double>;
     
-    
-    template<typename T>
-    bool isDevicePointer(T *ptr)
-    {
-      cudaPointerAttributes attributes = {};
-      // do NOT check for error: in CUDA<10, passing a host pointer will
-      // actually create a cuda error, so let's just call and then
-      // ignore/clear the error
-      cudaPointerGetAttributes(&attributes,(const void *)ptr);
-      cudaGetLastError();
-      
-      return attributes.devicePointer != 0;
-    }
-  
     /*! an array that can upload an array from host to device, and free
       on destruction. If the pointer provided is *already* a device
       pointer this will just use that pointer */
@@ -95,10 +83,14 @@ namespace dp {
         DevMesh  *meshes;
         PrimRef  *primRefs;
       };
+
+      DevGroup getDevGroup() const
+      { return { bvh,meshes,primRefs }; }
       
-      bvh3d  bvh;
-      DevGroup *group  = nullptr;
+      bvh3d     bvh;
+      // DevGroup *group  = nullptr;
       DevMesh  *meshes = nullptr;
+      PrimRef  *primRefs = nullptr;
       
       /*! these are stored and owned on the host, and also manage their
         vertex arrays' ownerhip; but vertex arrays themselves will be
@@ -153,7 +145,6 @@ namespace dp {
         hostMeshes.push_back(hm);
       }
       
-      PrimRef *primRefs   = nullptr;
       cudaMalloc((void **)&primRefs,numTrisTotal*sizeof(*primRefs));
 
       box3d   *primBounds = nullptr;
@@ -190,7 +181,7 @@ namespace dp {
     TrianglesDP::~TrianglesDP()
     {
       cudaFree(meshes);
-      cudaFree(group);
+      cudaFree(primRefs);
       ::cuBQL::cuda::free(bvh);
     }
     
@@ -225,6 +216,36 @@ namespace dp {
       };
       ::cuBQL::shrinkingRayQuery::forEachPrim(intersectPrim,group.bvh,ray);
     }
+
+
+    struct InstancesDP : public dp::InstancesDPImpl {
+      InstancesDP(CuBQLCUDABackend *be,
+                  dp::InstancesDPGroup *fe)
+        : InstancesDPImpl(fe), be(be)
+      {}
+      void trace(Ray *rays,
+                 Hit *hits,
+                 int numRays) override;
+      CuBQLCUDABackend *const be;
+    };
+
+    void InstancesDP::trace(Ray *rays,
+                            Hit *hits,
+                            int numRays) 
+    {
+      assert(fe->groups.size() == 1);
+      assert(fe->d_transforms == nullptr);
+      TrianglesDPGroup *tg = (TrianglesDPGroup *)fe->groups[0];
+      assert(tg);
+      TrianglesDP *triangles = (TrianglesDP*)tg->impl.get();
+      assert(triangles);
+
+      int bs = 128;
+      int nb = divRoundUp(numRays,bs);
+      g_trace<<<nb,bs>>>(triangles->getDevGroup(),
+                         rays,hits,
+                         numRays);
+    }
     
   } // :: cubql_cuda
   
@@ -235,9 +256,9 @@ namespace dp {
     cudaFree(0);
   }
 
-  std::shared_ptr<WorldImpl>
-  CuBQLCUDABackend::createWorldDPImpl(dp::World *fe)
-  { return {}; }
+  std::shared_ptr<InstancesDPImpl>
+  CuBQLCUDABackend::createInstancesDPImpl(dp::InstancesDPGroup *fe)
+  { return std::make_shared<cubql_cuda::InstancesDP>(this,fe); }
     
   std::shared_ptr<TrianglesDPImpl>
   CuBQLCUDABackend::createTrianglesDPImpl(dp::TrianglesDPGroup *fe) 

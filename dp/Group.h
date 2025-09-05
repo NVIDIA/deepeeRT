@@ -29,6 +29,6 @@ namespace dp {
     Context *const context;
     std::shared_ptr<TrianglesDPImpl> impl;
   };
-    
+
 } // ::dp
 

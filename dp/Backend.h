@@ -8,7 +8,7 @@
 namespace dp {
   struct Context;
   struct TrianglesDPGroup;
-  struct World;
+  struct InstancesDPGroup;
   
   /*! CAREFUL: this HAS to match the data layout of DPRRay in deepee.h !*/
   struct Ray {
@@ -41,18 +41,23 @@ namespace dp {
     TrianglesDPGroup *const fe;
   };
     
-  struct WorldImpl {
-    WorldImpl(World *const fe) : fe(fe) {}
-    virtual ~WorldImpl() = default;
-    World *const fe;
+  struct InstancesDPImpl {
+    InstancesDPImpl(InstancesDPGroup *const fe) : fe(fe) {}
+    virtual ~InstancesDPImpl() = default;
+
+    virtual void trace(Ray *rays,
+                       Hit *hits,
+                       int numRays) = 0;
+    
+    InstancesDPGroup *const fe;
   };
   
   struct Backend {
     Backend(Context *const context);
     virtual ~Backend() = default;
     
-    virtual std::shared_ptr<WorldImpl>
-    createWorldDPImpl(dp::World *fe) = 0;
+    virtual std::shared_ptr<InstancesDPImpl>
+    createInstancesDPImpl(dp::InstancesDPGroup *fe) = 0;
     
     virtual std::shared_ptr<TrianglesDPImpl>
     createTrianglesDPImpl(dp::TrianglesDPGroup *fe) = 0;

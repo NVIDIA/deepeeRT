@@ -7,15 +7,15 @@
 
 namespace dp {
 
-  World::World(Context *context,
-               const std::vector<Group *> &groups,
-               const DPRAffine            *d_transforms)
+  InstancesDPGroup::InstancesDPGroup(Context *context,
+                                     const std::vector<Group *> &groups,
+                                     const DPRAffine            *d_transforms)
     : context(context),
       groups(groups),
       d_transforms(d_transforms)
   {}
-
-  void World::traceRays(DPRRay *d_rays, DPRHit *d_hits, int numRays)
+  
+  void InstancesDPGroup::traceRays(DPRRay *d_rays, DPRHit *d_hits, int numRays)
   { /* TODO */ }
 
 } // ::dp

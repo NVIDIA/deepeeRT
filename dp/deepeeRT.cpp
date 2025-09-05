@@ -79,7 +79,7 @@ DPRWorld dprCreateWorldDP(DPRContext _context,
     assert(group);
     groups.push_back(group);
   }
-  return (DPRWorld)new dp::World(context,groups,d_instanceTransforms);
+  return (DPRWorld)new dp::InstancesDPGroup(context,groups,d_instanceTransforms);
 }
 
 DPR_API
@@ -93,7 +93,7 @@ void dprTrace(/*! the world we want the rays to be traced against */
                 d_hits *must* have (at least) that many entires */
               int numRays)
 {
-  dp::World *world = (dp::World *)_world;
+  dp::InstancesDPGroup *world = (dp::InstancesDPGroup *)_world;
   world->traceRays(d_rays,d_hits,numRays);
 }
 

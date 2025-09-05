@@ -14,8 +14,8 @@ namespace dp {
     CuBQLCUDABackend(Context *const context);
     virtual ~CuBQLCUDABackend() = default;
     
-    virtual std::shared_ptr<WorldImpl>
-    createWorldDPImpl(dp::World *fe) override;
+    virtual std::shared_ptr<InstancesDPImpl>
+    createInstancesDPImpl(dp::InstancesDPGroup *fe) override;
     
     virtual std::shared_ptr<TrianglesDPImpl>
     createTrianglesDPImpl(dp::TrianglesDPGroup *fe) override;
