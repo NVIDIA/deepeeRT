@@ -7,13 +7,13 @@
 namespace dp {
   TrianglesDP::TrianglesDP(Context         *context,
                            uint64_t         userData,
-                           const vec3d     *d_vertexArray,
+                           const vec3d     *vertexArray,
                            int              vertexCount,
-                           const vec3i     *d_indexArray,
+                           const vec3i     *indexArray,
                            int              indexCount)
     : userData(userData),
-      d_vertexArray(d_vertexArray),
-      d_indexArray(d_indexArray),
+      vertexArray(vertexArray),
+      indexArray(indexArray),
       vertexCount(vertexCount),
       indexCount(indexCount),
       context(context)

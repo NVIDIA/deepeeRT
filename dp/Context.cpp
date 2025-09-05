@@ -2,14 +2,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "dp/Context.h"
+#include "dp/cuBQL/CuBQLBackend.h"
 
 namespace dp {
   
   Context::Context(int gpuID)
     : gpuID(gpuID)
   {
-    cudaSetDevice(gpuID);
-    cudaFree(0);
+    backend = std::make_shared<CuBQLCUDABackend>(this);
   }
   
 } // ::dpr

@@ -129,10 +129,10 @@ DPRTriangles dprCreateTrianglesDP(DPRContext context,
                                     yielded the intersection.  */
                                   uint64_t userData,
                                   /*! device array of vertices */
-                                  DPRvec3 *d_vertexArray,
+                                  DPRvec3 *vertexArray,
                                   size_t   vertexCount,
                                   /*! device array of int3 vertex indices */
-                                  DPRint3 *d_indexArray,
+                                  DPRint3 *indexArray,
                                   size_t   indexCount);
 
 DPR_API
@@ -143,7 +143,7 @@ DPRGroup dprCreateTrianglesGroup(DPRContext,
 DPR_API
 DPRWorld dprCreateWorldDP(DPRContext,
                           DPRGroup  *instanceGroups,
-                          DPRAffine *d_instanceTransforms,
+                          DPRAffine *instanceTransforms,
                           size_t     instanceCount);
 
 DPR_API
