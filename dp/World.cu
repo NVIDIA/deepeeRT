@@ -13,10 +13,16 @@ namespace dp {
     : context(context),
       groups(groups),
       d_transforms(d_transforms)
-  {}
+  {
+    impl = context->backend->createInstancesDPImpl(this);
+  }
   
   void InstancesDPGroup::traceRays(DPRRay *d_rays, DPRHit *d_hits, int numRays)
-  { /* TODO */ }
+  {
+    impl->trace((Ray*)d_rays,
+                (Hit*)d_hits,
+                numRays);
+  }
 
 } // ::dp
 

@@ -30,7 +30,7 @@ namespace miniapp {
         double x = -1.+2.*ix/res;
         double y = -1.+2.*iy/res;
         double z = rng(gen);
-        mesh.vertices.push_back(x*dx+y*dy+z*dz);
+        mesh.vertices.push_back(scale*x*dx+scale*y*dy+scale*z*dz);
       }
     
     for (int iy=0;iy<res;iy++)

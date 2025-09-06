@@ -135,6 +135,7 @@ namespace dp {
       SetActiveGPU forDuration(be->gpuID);
       
       int numTrisTotal = 0;
+      std::vector<DevMesh> devMeshes;
       for (auto geom : fe->geoms) {
         numTrisTotal += geom->indexCount;
         // this will automatically upload the vertex arrays if so required:
@@ -143,7 +144,11 @@ namespace dp {
            geom->vertexArray,geom->vertexCount,
            geom->indexArray,geom->indexCount);
         hostMeshes.push_back(hm);
+        devMeshes.push_back(hm->getDD());
       }
+      cudaMalloc((void **)&meshes,devMeshes.size()*sizeof(DevMesh));
+      cudaMemcpy((void*)meshes,devMeshes.data(),
+                 devMeshes.size()*sizeof(DevMesh),cudaMemcpyDefault);
       
       cudaMalloc((void **)&primRefs,numTrisTotal*sizeof(*primRefs));
 
@@ -164,9 +169,9 @@ namespace dp {
         offset += count;
       }
       cudaStreamSynchronize(0);
-      
 
-      
+      std::cout << "#dpr: building BVH over " << prettyNumber(numTrisTotal)
+                << " triangles" << std::endl;
       DeviceMemoryResource memResource;
       ::cuBQL::cuda::sahBuilder(bvh,
                                 primBounds,
@@ -174,6 +179,7 @@ namespace dp {
                                 ::cuBQL::BuildConfig(),
                                 0,
                                 memResource);
+      std::cout << "#dpr: ... bvh built." << std::endl;
       
       cudaFree(primBounds);
     }
@@ -193,15 +199,30 @@ namespace dp {
       int tid = threadIdx.x+blockIdx.x*blockDim.x;
       if (tid >= numRays) return;
 
-      Hit &hit = hits[tid];
+#ifdef NDEBUG
+      const bool dbg = false;
+#else
+      bool dbg = (tid == -1);
+#endif
+
+      
+      Hit hit = hits[tid];
       hit.primID = -1;
       int instID = 0;
       ::cuBQL::ray3d ray(rays[tid].origin,
                          rays[tid].direction,
                          rays[tid].tMin,
                          rays[tid].tMax);
-      
-      auto intersectPrim = [&ray,&hit,group,instID](uint32_t primID) -> double {
+
+      if (dbg) {
+        cuBQL::dout << "dbg ray " << ray << "\n";
+        cuBQL::dout << "bvh.nodes " << (int*)group.bvh.nodes << "\n";
+        cuBQL::dout << "bvh.primIDs " << (int*)group.bvh.primIDs << "\n";
+        cuBQL::dout << "group.meshes " << (int*)group.meshes << "\n";
+        cuBQL::dout << "group.mesh0 " << group.meshes[0].userData << "\n";
+        cuBQL::dout << "group.primRefs " << (int*)group.primRefs << "\n";
+      }
+      auto intersectPrim = [&ray,&hit,group,instID,dbg](uint32_t primID) -> double {
         RayTriangleIntersection isec;
         PrimRef prim = group.primRefs[primID];
         const TriangleDP tri = group.getTriangle(prim);
@@ -210,11 +231,13 @@ namespace dp {
           hit.instID = instID;
           hit.geomUserData = group.meshes[prim.geomID].userData;
           hit.t = isec.t;
+          if (dbg) printf("hit %i %i\n",hit.instID,hit.primID);
           ray.tMax = isec.t;
         }
         return ray.tMax;
       };
       ::cuBQL::shrinkingRayQuery::forEachPrim(intersectPrim,group.bvh,ray);
+      hits[tid] = hit;;
     }
 
 
@@ -233,6 +256,7 @@ namespace dp {
                             Hit *hits,
                             int numRays) 
     {
+      CUBQL_CUDA_SYNC_CHECK();
       assert(fe->groups.size() == 1);
       assert(fe->d_transforms == nullptr);
       TrianglesDPGroup *tg = (TrianglesDPGroup *)fe->groups[0];
@@ -245,6 +269,7 @@ namespace dp {
       g_trace<<<nb,bs>>>(triangles->getDevGroup(),
                          rays,hits,
                          numRays);
+      CUBQL_CUDA_SYNC_CHECK();
     }
     
   } // :: cubql_cuda

@@ -94,6 +94,10 @@ void dprTrace(/*! the world we want the rays to be traced against */
               int numRays)
 {
   dp::InstancesDPGroup *world = (dp::InstancesDPGroup *)_world;
+  assert(world);
+  assert(d_hits);
+  assert(d_rays);
+  assert(numRays > 0);
   world->traceRays(d_rays,d_hits,numRays);
 }
 

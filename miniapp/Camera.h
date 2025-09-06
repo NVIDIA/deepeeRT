@@ -9,12 +9,19 @@ namespace miniapp {
   struct Ray {
     vec3d origin;
     vec3d direction;
-    double  tmin;
-    double  tmax;
+    double  tMin;
+    double  tMax;
   };
+
+  inline __cubql_both dbgout operator<<(dbgout o, Ray ray)
+  {
+    o << "Ray{"<<ray.origin<<"+["<<ray.tMin<<","<<ray.tMax<<"]*"<<ray.direction<<"}";
+    return o;
+  }
+
   
   struct Camera {
-    inline __device__ Ray generateRay(vec2d pixel) const;
+    inline __device__ Ray generateRay(vec2d pixel, bool dbg=false) const;
     struct {
       vec3d v,du,dv;
     } origin, direction;
@@ -26,13 +33,17 @@ namespace miniapp {
                         const vec3d &up);
 
 
-  inline __device__ Ray Camera::generateRay(vec2d pixel) const
+  inline __device__ Ray Camera::generateRay(vec2d pixel, bool dbg) const
   {
     Ray ray;
+    if (dbg) {
+      dout << "origin " << origin.v << " " << origin.du << " " << origin.dv << "\n";
+      dout << "direction " << direction.v << " " << direction.du << " " << direction.dv << "\n";
+    }
     ray.origin = origin.v+pixel.x*origin.du+pixel.y*origin.dv;
     ray.direction = normalize(direction.v+pixel.x*direction.du+pixel.y*direction.dv);
-    ray.tmin = 0.;
-    ray.tmax = INFINITY;
+    ray.tMin = 0.;
+    ray.tMax = INFINITY;
     return ray;
   }
 

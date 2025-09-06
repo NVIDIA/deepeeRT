@@ -14,8 +14,8 @@ namespace dp {
       geometry within multiple geometries that a group may be built
       over */
   struct PrimRef {
-    int primID;
     int geomID;
+    int primID;
   };
   
   struct Group {

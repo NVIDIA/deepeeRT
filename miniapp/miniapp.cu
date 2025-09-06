@@ -3,8 +3,36 @@
 
 #include "Mesh.h"
 #include "Camera.h"
+#include <fstream>
 
 namespace miniapp {
+
+  /*! helper function that creates a semi-random color from an ID */
+  inline __cubql_both vec3f randomColor(int i)
+  {
+#if 1
+    const uint64_t FNV_offset_basis = 0xcbf29ce484222325ULL;
+    const uint64_t FNV_prime = 0x10001a7;//0x100000001b3ULL;
+    uint32_t v = (uint32_t)FNV_offset_basis;
+    v = FNV_prime * v ^ i;
+    v = FNV_prime * v ^ i;
+    v = FNV_prime * v ^ i;
+    v = FNV_prime * v ^ i;
+
+    int r = v >> 24;
+    v = FNV_prime * v ^ i;
+    int b = v >> 16;
+    v = FNV_prime * v ^ i;
+    int g = v >> 8;
+#else
+    int r = unsigned(i)*13*17 + 0x234235;
+    int g = unsigned(i)*7*3*5 + 0x773477;
+    int b = unsigned(i)*11*19 + 0x223766;
+#endif
+    return vec3f((r&255)/255.f,
+                 (g&255)/255.f,
+                 (b&255)/255.f);
+  }
 
   void getFrame(std::string up,
                 vec3d &dx,
@@ -18,9 +46,9 @@ namespace miniapp {
       return;
     }
     if (up == "y") {
-      dy = {1.,0.,0.};
+      dx = {1.,0.,0.};
       dz = {0.,1.,0.};
-      dx = {0.,0.,1.};
+      dy = {0.,0.,1.};
       return;
     }
     throw std::runtime_error("unhandled 'up'-specifier of '"+up+"'");
@@ -30,21 +58,28 @@ namespace miniapp {
                        const std::vector<Mesh *> &meshes)
   {
     std::vector<DPRTriangles> geoms;
+    int meshID = 0;
     for (auto pm : meshes) {
       vec3d *d_vertices = 0;
       vec3i *d_indices = 0;
       pm->upload(d_vertices,d_indices);
+      std::cout << "#dpm: creating dpr triangle mesh w/ "
+                << prettyNumber(pm->indices.size()) << " triangles"
+                << std::endl;
       DPRTriangles geom = dprCreateTrianglesDP(context,
-                                               geoms.size(),
+                                               meshID++,
                                                (DPRvec3*)d_vertices,
                                                pm->vertices.size(),
                                                (DPRint3*)d_indices,
                                                pm->indices.size());
       geoms.push_back(geom);
     }
+    std::cout << "#dpm: creating dpr triangles group w/ "
+              << geoms.size() << " meshes" << std::endl;
     DPRGroup group = dprCreateTrianglesGroup(context,
                                              geoms.data(),
                                              geoms.size());
+    std::cout << "#dpm: creating dpr world" << std::endl;
     DPRWorld world = dprCreateWorldDP(context,
                                       &group,
                                       nullptr,
@@ -66,7 +101,8 @@ namespace miniapp {
     if (iy >= fbSize.y) return;
 
     Ray ray = (const Ray &)d_rays[ix+iy*fbSize.x];
-    vec3f color = vec3f(abs(ray.direction));
+    DPRHit hit = d_hits[ix+iy*fbSize.x];
+    vec3f color = randomColor(hit.primID + 0x290374*hit.geomUserData);
     vec4f pixel = {color.x,color.y,color.z,1.f};
     d_pixels[ix+iy*fbSize.x] = pixel;
   }
@@ -81,20 +117,31 @@ namespace miniapp {
     
     if (ix >= fbSize.x) return;
     if (iy >= fbSize.y) return;
+
+#ifdef NDEBUG
+      const bool dbg = false;
+#else
+      // bool dbg = ix == fbSize.x/2 && iy == fbSize.y/2;
+      bool dbg = (tid == -1);
+#endif
+
     
     double u = ix+.5;
     double v = iy+.5;
-    
-    Ray ray = camera.generateRay({u,v});
+
+    vec2d pixel = {u,v};
+    Ray ray = camera.generateRay(pixel,dbg);
+    if (dbg) dout << " pixel " << pixel << " ray " << ray << "\n";
     (Ray &)d_rays[ix+iy*fbSize.x] = ray;
   }
   
   void main(int ac, char **av)
   {
-    double scale = 1e3f;
+    double scale = 1;
     std::string up = "y";
     std::string inFileName;
-    int terrainRes = 10*1024;
+    std::string outFileName = "deepeeTest.ppm";
+    int terrainRes = 2*1024;
     vec2i fbSize = { 1024,1024 };
     for (int i=1;i<ac;i++) {
       std::string arg = av[i];
@@ -117,24 +164,30 @@ namespace miniapp {
 
     Mesh object;
     object.load_binmesh(inFileName);
+    scale = scale * length(object.bounds().size());
     vec3d dx,dy,dz;
     getFrame(up,dx,dy,dz);
     
     object.translate(scale*(dx+dy)-object.center());
-    
+
+    std::cout << "#dpm: creating tessellated quad for base terrain" << std::endl;
     Mesh terrain = generateTesselatedQuad(terrainRes,dx,dy,dz,2.f*scale);
+    terrain.translate(-.5f*object.bounds().size().z*dz);
     Camera camera = generateCamera(fbSize,
                                    /* bounds to focus on */
                                    object.bounds(),
                                    /* point we're looking from*/
-                                   -2.*scale*(dx+dy)+.1*scale*dz,
+                                   -1.*scale*(dx+dy)+.5*scale*dz,
                                    /* up for orienation */
                                    dz);
 
     vec2i bs(32,32);
     vec2i nb = divRoundUp(fbSize,bs);
     
+    std::cout << "#dpm: creating dpr context" << std::endl;
     DPRContext dpr = dprContextCreate(DPR_CONTEXT_GPU,0);
+    std::cout << "#dpm: creating world" << std::endl;
+    // DPRWorld world = createWorld(dpr,{&object});
     DPRWorld world = createWorld(dpr,{&object,&terrain});
 
     DPRRay *d_rays = 0;
@@ -144,12 +197,39 @@ namespace miniapp {
     DPRHit *d_hits = 0;
     cudaMalloc((void **)&d_hits,fbSize.x*fbSize.y*sizeof(DPRHit));
 
+    std::cout << "#dpm: calling trace" << std::endl;
     dprTrace(world,d_rays,d_hits,fbSize.x*fbSize.y);
     
+    std::cout << "#dpm: shading rays" << std::endl;
     vec4f *m_pixels = 0;
     cudaMallocManaged((void **)&m_pixels,fbSize.x*fbSize.y*sizeof(vec4f));
     g_shadeRays<<<bs,nb>>>(m_pixels,d_rays,d_hits,fbSize);
+    cudaStreamSynchronize(0);
 
+    std::cout << "#dpm: writing test image to " << outFileName << std::endl;
+    std::ofstream out(outFileName.c_str());
+
+    char buf[100];
+    sprintf(buf,"P3\n#deepee test image\n%i %i 255\n",fbSize.x,fbSize.y);
+    out << "P3\n";
+    out << "#deepeeRT test image\n";
+    out << fbSize.x << " " << fbSize.y << " 255" << std::endl;
+    for (int iy=0;iy<fbSize.y;iy++) {
+      for (int ix=0;ix<fbSize.x;ix++) {
+        vec4f pixel = m_pixels[ix+(fbSize.y-1-iy)*fbSize.x];
+        auto write = [&](float f) {
+          f = f*256.f;
+          f = std::min(f,255.f);
+          f = std::max(f,0.f);
+          out << int(f) << " ";
+        };
+        write(pixel.x);
+        write(pixel.y);
+        write(pixel.z);
+        out << " ";
+      }
+      out << "\n";
+    }
   }
 }
 
