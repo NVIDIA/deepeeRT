@@ -1,0 +1,3 @@
+[submodule "cuBQL"]
+	path = submodules/cuBQL
+	url = https://github.com/ingowald/cuBQL

@@ -35,7 +35,7 @@ if ((${CMAKE_CURRENT_SOURCE_DIR} STREQUAL ${CMAKE_SOURCE_DIR}))
   SET(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
 endif()
 
-add_subdirectory(../cuBQL EXCLUDE_FROM_ALL builddir_cuBQL)
+add_subdirectory(submodules/cuBQL EXCLUDE_FROM_ALL builddir_cuBQL)
 
 add_subdirectory(dp)
 add_subdirectory(miniapp)
