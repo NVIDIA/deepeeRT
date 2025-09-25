@@ -1,4 +1,4 @@
-# Copyright 2025 NVIDIA Corp
+# SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
 set(CMAKE_BUILD_TYPE_INIT "Release")

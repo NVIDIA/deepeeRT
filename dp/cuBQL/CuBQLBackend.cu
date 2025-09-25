@@ -1,6 +1,6 @@
-// Copyright 2025-2025 NVIDIA Corp
+// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
- 
+
 #include "dp/cuBQL/CuBQLBackend.h"
 #include "dp/Context.h"
 #include "dp/Group.h"
