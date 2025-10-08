@@ -12,6 +12,7 @@ namespace dp {
     Context(int gpuID);
 
     std::shared_ptr<Backend> backend;
+    /*! the cuda gpu ID that this device is going to run on */
     int const gpuID;
   };
   

@@ -25,6 +25,8 @@ namespace miniapp {
     du *= scale*aspect;
     
 #if 0
+    // for testing: this is a ortho camera with parallel rays and
+    // different origins all n a plane
     camera.direction.v = normalize(direction);
     camera.direction.du = 0.;
     camera.direction.dv = 0.;
@@ -33,6 +35,8 @@ namespace miniapp {
     camera.origin.du = du * (1./imageRes.x);
     camera.origin.dv = dv * (1./imageRes.y);
 #else
+    // for testing: this is a perspective camera with all origins on a
+    // point, and different ray directions each
     camera.direction.v = direction-.5*du-.5*dv;
     camera.direction.du = du * (1./imageRes.x);
     camera.direction.dv = dv * (1./imageRes.y);

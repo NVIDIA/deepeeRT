@@ -11,4 +11,4 @@ namespace dp {
       gpuID(context->gpuID)
   {}
 
-}
+} // ::dp

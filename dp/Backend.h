@@ -34,13 +34,16 @@ namespace dp {
     double  t;
     double  u, v;
   };
-  
+
+  /*! implements a group of double-precision triangles */
   struct TrianglesDPImpl {
     TrianglesDPImpl(TrianglesDPGroup *const fe) : fe(fe) {}
     virtual ~TrianglesDPImpl() = default;
     TrianglesDPGroup *const fe;
   };
     
+  /*! implements a group of double-precision instances, including the
+    actual trace() method */
   struct InstancesDPImpl {
     InstancesDPImpl(InstancesDPGroup *const fe) : fe(fe) {}
     virtual ~InstancesDPImpl() = default;
@@ -51,7 +54,10 @@ namespace dp {
     
     InstancesDPGroup *const fe;
   };
-  
+
+  /*! implements an actual backend for a double-precision ray tracing
+      context. primarily acts as 'factory' for instance and geometry
+      groups that then do the actual work */
   struct Backend {
     Backend(Context *const context);
     virtual ~Backend() = default;
@@ -66,4 +72,4 @@ namespace dp {
     int const gpuID;
   };
   
-}
+} // ::dp

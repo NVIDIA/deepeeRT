@@ -10,9 +10,8 @@ namespace miniapp {
   /*! helper function that creates a semi-random color from an ID */
   inline __cubql_both vec3f randomColor(int i)
   {
-#if 1
     const uint64_t FNV_offset_basis = 0xcbf29ce484222325ULL;
-    const uint64_t FNV_prime = 0x10001a7;//0x100000001b3ULL;
+    const uint64_t FNV_prime = 0x10001a7;
     uint32_t v = (uint32_t)FNV_offset_basis;
     v = FNV_prime * v ^ i;
     v = FNV_prime * v ^ i;
@@ -24,11 +23,6 @@ namespace miniapp {
     int b = v >> 16;
     v = FNV_prime * v ^ i;
     int g = v >> 8;
-#else
-    int r = unsigned(i)*13*17 + 0x234235;
-    int g = unsigned(i)*7*3*5 + 0x773477;
-    int b = unsigned(i)*11*19 + 0x223766;
-#endif
     return vec3f((r&255)/255.f,
                  (g&255)/255.f,
                  (b&255)/255.f);
@@ -118,20 +112,11 @@ namespace miniapp {
     if (ix >= fbSize.x) return;
     if (iy >= fbSize.y) return;
 
-#ifdef NDEBUG
-      const bool dbg = false;
-#else
-      // bool dbg = ix == fbSize.x/2 && iy == fbSize.y/2;
-      bool dbg = (tid == -1);
-#endif
-
-    
     double u = ix+.5;
     double v = iy+.5;
 
     vec2d pixel = {u,v};
     Ray ray = camera.generateRay(pixel,dbg);
-    if (dbg) dout << " pixel " << pixel << " ray " << ray << "\n";
     (Ray &)d_rays[ix+iy*fbSize.x] = ray;
   }
   
