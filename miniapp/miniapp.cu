@@ -94,7 +94,7 @@ namespace miniapp {
     if (ix >= fbSize.x) return;
     if (iy >= fbSize.y) return;
 
-    Ray ray = (const Ray &)d_rays[ix+iy*fbSize.x];
+    //Ray ray = (const Ray &)d_rays[ix+iy*fbSize.x];
     DPRHit hit = d_hits[ix+iy*fbSize.x];
     vec3f color = randomColor(hit.primID + 0x290374*hit.geomUserData);
     vec4f pixel = {color.x,color.y,color.z,1.f};
@@ -116,7 +116,7 @@ namespace miniapp {
     double v = iy+.5;
 
     vec2d pixel = {u,v};
-    Ray ray = camera.generateRay(pixel,dbg);
+    Ray ray = camera.generateRay(pixel,false);
     (Ray &)d_rays[ix+iy*fbSize.x] = ray;
   }
   

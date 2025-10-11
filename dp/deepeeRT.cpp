@@ -71,7 +71,7 @@ DPRWorld dprCreateWorldDP(DPRContext _context,
   assert(context);
   
   assert(instanceCount == 1 && "instancing not yet implemented");
-  assert(d_instanceTransform == nullptr && "instancing not yet implemented");
+  assert(d_instanceTransforms == nullptr && "instancing not yet implemented");
   
   std::vector<dp::Group *> groups;
   for (int i=0;i<(int)instanceCount;i++) {
