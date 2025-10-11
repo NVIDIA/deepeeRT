@@ -45,7 +45,8 @@
 #include <stdint.h>
 
 #ifdef _WIN32
-# if defined(deepeeRT_STATIC)
+// for now, we only support a static build for this library
+# if 1 || defined(deepeeRT_STATIC)
 #  define DPR_INTERFACE /* nothing */
 # elif defined(deepeeRT_EXPORTS)
 #  define DPR_INTERFACE __declspec(dllexport)

@@ -55,7 +55,7 @@ namespace dp {
     };
   
     struct HostMesh {
-      HostMesh(uint32_t userData,
+      HostMesh(uint64_t userData,
                const vec3d *verticesArray, int verticesCount,
                const vec3i *indicesArray, int indicesCount)
         : userData(userData),

@@ -18,6 +18,7 @@ target_link_libraries(deepeeRT_common PUBLIC
 )
 
 add_library(deepeeRT STATIC
+  ../include/deepee/deepee.h
   common.h
   Triangles.h
   Triangles.cu
