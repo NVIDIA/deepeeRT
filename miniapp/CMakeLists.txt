@@ -4,6 +4,7 @@
 add_executable(dpMiniApp
   Mesh.h
   Mesh.cpp
+  import_OBJ.cpp
   Camera.h
   Camera.cu
   miniapp.cu
