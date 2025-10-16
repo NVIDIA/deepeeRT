@@ -28,7 +28,7 @@ namespace miniapp {
     std::vector<vec3i> indices;
   };
   
-  Mesh generateTesselatedQuad(int res,
+  Mesh generateTessellatedQuad(int res,
                               vec3d dx,
                               vec3d dy,
                               vec3d dz,

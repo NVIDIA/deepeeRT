@@ -156,14 +156,14 @@ namespace miniapp {
     object.translate(scale*(dx+dy)-object.center());
 
     std::cout << "#dpm: creating tessellated quad for base terrain" << std::endl;
-    Mesh terrain = generateTesselatedQuad(terrainRes,dx,dy,dz,2.f*scale);
+    Mesh terrain = generateTessellatedQuad(terrainRes,dx,dy,dz,2.f*scale);
     terrain.translate(-.5f*object.bounds().size().z*dz);
     Camera camera = generateCamera(fbSize,
                                    /* bounds to focus on */
                                    object.bounds(),
                                    /* point we're looking from*/
                                    -1.*scale*(dx+dy)+.5*scale*dz,
-                                   /* up for orienation */
+                                   /* up for orientation */
                                    dz);
 
     vec2i bs(32,32);
