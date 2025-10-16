@@ -148,7 +148,7 @@ namespace miniapp {
       throw std::runtime_error("no input file name specified");
 
     Mesh object;
-    object.load_binmesh(inFileName);
+    object.load(inFileName);
     scale = scale * length(object.bounds().size());
     vec3d dx,dy,dz;
     getFrame(up,dx,dy,dz);

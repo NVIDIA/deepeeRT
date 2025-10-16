@@ -47,6 +47,17 @@ namespace miniapp {
 
   vec3d Mesh::center()
   { return bounds().center(); }
+
+  void Mesh::load(const std::string &fileName)
+  {
+    const std::string ext = extensionOf(fileName);
+    if (ext == ".obj")
+      load_obj(fileName);
+    else if (ext == ".binmesh")
+      load_binmesh(fileName);
+    else
+      throw std::runtime_error("un-recognized or un-supported file extension '"+ext+"'");
+  }
   
   void Mesh::load_binmesh(const std::string &fileName)
   {
@@ -85,4 +96,6 @@ namespace miniapp {
     cudaMemcpy(d_indices,indices.data(),indices.size()*sizeof(*d_indices),
                cudaMemcpyDefault);
   }
+
+  
 }
