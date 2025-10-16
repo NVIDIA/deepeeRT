@@ -21,8 +21,8 @@ DPRContext dprContextCreate(DPRContextType contextType,
 DPR_API
 DPRTriangles dprCreateTrianglesDP(DPRContext _context,
                                   /*! a 64-bit user-provided data that
-                                    gets attahed to this mesh; this is
-                                    waht gets reported in
+                                    gets attached to this mesh; this is
+                                    what gets reported in
                                     Hit::geomUserData if this mesh
                                     yielded the intersection.  */
                                   uint64_t userData,

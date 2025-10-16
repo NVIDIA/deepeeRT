@@ -6,26 +6,26 @@
 
    On a high level, this API allows for specifying single-level
    instanced scenes, with instances built over groups of geometries
-   (currently all geometries are trinalge meshes), with a "wavefront"
+   (currently all geometries are triangle meshes), with a "wavefront"
    API for tracing rays against such scenes. "Wavefront" in this
    context means that once a scene has been built be the user he can
-   trace an array (wave) of rays agsint such a scene, and get an array
+   trace an array (wave) of rays against such a scene, and get an array
    of hit descriptors back. There are currently no anyhit of
    closest-hit programs in this API, nor intersection programs,
-   bouding box programs.
+   bounding box programs.
   
    Naming convention: Throughout this API the first letter 'p' stands
-   for 'prime' (becaues this follows a optix prime like pattern), the
-   letters 'DP' and (evntually) 'SP' then indicate if the respective
+   for 'prime' (because this follows a optix prime like pattern), the
+   letters 'DP' and (eventually) 'SP' then indicate if the respective
    type is intended to be used in a double (fp64)-precision or a single
-   (fp32)-precision ray tracing context. A "DP Context" in this contetx
+   (fp32)-precision ray tracing context. A "DP Context" in this context
    refers to a context in which rays are supposed to be traced and
    intersected with doble-precision accuracy, yielding double-precision
    hits, not necessarily that all of the geometry is specified in
    double precision, too. Thus, some functions like dprCreateTriangles
    may further split into dprCreateTrianglesSP (single-precision
    vertices for the triangles, but a double-precision trace context)
-   and dprTrianglesDP (double precision trianlges, double-preicion
+   and dprTrianglesDP (double precision triangles, double-precision
    tracing.
 
    Anything starting with "d_" is expected to be a device-side array
@@ -82,8 +82,8 @@ struct DPRvec3 { double  x,y,z; };
 struct DPRvec4 { double  x,y,z,w; };
 
 /*! affine transform matrix, for instances (with embree-style naming,
-  'p' for the translatoin/offset part, 'l' for the linear
-  transform/rotatoinal part, and vx,vy,vz for the vectors of that
+  'p' for the translation/offset part, 'l' for the linear
+  transform/rotational part, and vx,vy,vz for the vectors of that
   3x3 linear transform */
 struct DPRAffine {
   struct {
@@ -126,8 +126,8 @@ DPRContext dprContextCreate(DPRContextType contextType,
 DPR_API
 DPRTriangles dprCreateTrianglesDP(DPRContext context,
                                   /*! a 64-bit user-provided data that
-                                    gets attahed to this mesh; this is
-                                    waht gets reported in
+                                    gets attached to this mesh; this is
+                                    what gets reported in
                                     Hit::geomUserData if this mesh
                                     yielded the intersection.  */
                                   uint64_t userData,
@@ -161,8 +161,8 @@ void dprTrace(/*! the world we want the rays to be traced against */
               int numRays);
 
 DPR_API void dprFreeWorld(DPRWorld world);
-DPR_API void dprFreeTriangles(DPRTriangles world);
-DPR_API void dprFreeGroup(DPRGroup world);
-DPR_API void dprFreeContext(DPRContext world);
+DPR_API void dprFreeTriangles(DPRTriangles triangles);
+DPR_API void dprFreeGroup(DPRGroup group);
+DPR_API void dprFreeContext(DPRContext context);
 
 

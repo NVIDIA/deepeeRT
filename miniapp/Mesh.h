@@ -30,7 +30,7 @@ namespace miniapp {
     void load_binmesh(const std::string &fileName);
     void load_obj(const std::string &fileName);
   };
-
+  
   /*! helper function that creates a mesh with a terrain-like shape,
       consisting of a height field of res*res squares (so 2*res*res
       triangles); spanning [-res..+res] in x and y dimension, and

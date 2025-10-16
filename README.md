@@ -23,7 +23,7 @@ reordering, denoising, etc. Instead, this library intentionally
 focusses on only tracing rays, reading rays from a device-array of
 rays, and filling in a corresponding device array of hits.
 
-## Copyright and Licence
+## Copyright and License
 
 // Copyright 2025 NVIDIA Corp
 // SPDX-License-Identifier: Apache-2.0
