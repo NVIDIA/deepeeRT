@@ -1,5 +1,9 @@
 # DeepeeRT - A "Basics-only" Ray Tracing Library for Double-Precision Ray Tracing
 
+Build Status:
+[![Windows](https://github.com/NVIDIA/deepeeRT/actions/workflows/Windows.yml/badge.svg)](https://github.com/NVIDIA/deepeeRT/actions/workflows/Windows.yml) 
+[![Ubuntu](https://github.com/NVIDIA/deepeeRT/actions/workflows/Ubuntu.yml/badge.svg)](https://github.com/NVIDIA/deepeeRT/actions/workflows/Ubuntu.yml)
+
 ## Introduction
 
 The goal of this library/project is to allow scientists and other
