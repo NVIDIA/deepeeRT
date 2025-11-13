@@ -172,24 +172,24 @@ namespace miniapp {
     std::cout << "#dpm: creating dpr context" << std::endl;
     DPRContext dpr = dprContextCreate(DPR_CONTEXT_GPU,0);
     std::cout << "#dpm: creating world" << std::endl;
-    // DPRWorld world = createWorld(dpr,{&object});
     DPRWorld world = createWorld(dpr,{&object,&terrain});
 
     DPRRay *d_rays = 0;
     cudaMalloc((void **)&d_rays,fbSize.x*fbSize.y*sizeof(DPRRay));
-    g_generateRays<<<bs,nb>>>(d_rays,fbSize,camera);
+    g_generateRays<<<nb,bs>>>(d_rays,fbSize,camera);
     
     DPRHit *d_hits = 0;
     cudaMalloc((void **)&d_hits,fbSize.x*fbSize.y*sizeof(DPRHit));
 
     std::cout << "#dpm: calling trace" << std::endl;
     dprTrace(world,d_rays,d_hits,fbSize.x*fbSize.y);
-    
+
     std::cout << "#dpm: shading rays" << std::endl;
     vec4f *m_pixels = 0;
     cudaMallocManaged((void **)&m_pixels,fbSize.x*fbSize.y*sizeof(vec4f));
-    g_shadeRays<<<bs,nb>>>(m_pixels,d_rays,d_hits,fbSize);
+    g_shadeRays<<<nb,bs>>>(m_pixels,d_rays,d_hits,fbSize);
     cudaStreamSynchronize(0);
+
 
     std::cout << "#dpm: writing test image to " << outFileName << std::endl;
     std::ofstream out(outFileName.c_str());
