@@ -37,7 +37,7 @@ namespace miniapp {
       randomly chosen heights in a [-.5..+.5]*scale range; all
       trnasformed through a [dx,dy,dz] matrix to allow for additoinal
       scaling or coordinate frame rotation */
-  Mesh generateTesselatedQuad(int res,
+  Mesh generateTessellatedQuad(int res,
                               vec3d dx,
                               vec3d dy,
                               vec3d dz,
