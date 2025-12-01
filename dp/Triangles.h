@@ -9,7 +9,7 @@ namespace dp {
 
   struct Context;
 
-  /*! a mesh of triangles, for a dp context, with vertices in doubles */
+  /*! a mesh of triangles, for a dp context, with vertices in doubles. This calss will make a *copy* of the input arrays */
   struct TrianglesDP {
     TrianglesDP(Context         *context,
                 uint64_t         userData,
@@ -17,7 +17,8 @@ namespace dp {
                 int              vertexCount,
                 const vec3i     *indexArray,
                 int              indexCount);
-     
+    virtual ~TrianglesDP();
+    
     uint64_t     const userData      = 0;
     const vec3d *const vertexArray   = 0;
     const vec3i *const indexArray    = 0;

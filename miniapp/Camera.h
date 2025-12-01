@@ -43,8 +43,10 @@ namespace miniapp {
   Ray Camera::generateRay(vec2d pixel, bool dbg) const
   {
     Ray ray;
-    ray.origin = origin.v+pixel.x*origin.du+pixel.y*origin.dv;
-    ray.direction = normalize(direction.v+pixel.x*direction.du+pixel.y*direction.dv);
+    ray.origin
+      = origin.v+pixel.x*origin.du+pixel.y*origin.dv;
+    ray.direction
+      = normalize(direction.v+pixel.x*direction.du+pixel.y*direction.dv);
     ray.tMin = 0.;
     ray.tMax = INFINITY;
     return ray;

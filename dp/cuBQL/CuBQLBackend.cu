@@ -172,16 +172,27 @@ namespace dp {
 
       std::cout << "#dpr: building BVH over " << prettyNumber(numTrisTotal)
                 << " triangles" << std::endl;
+      CUBQL_CUDA_SYNC_CHECK();
       DeviceMemoryResource memResource;
+#if 0
+      ::cuBQL::gpuBuilder(bvh,
+                                primBounds,
+                                numTrisTotal,
+                                ::cuBQL::BuildConfig(),
+                                0,
+                                memResource);
+#else
       ::cuBQL::cuda::sahBuilder(bvh,
                                 primBounds,
                                 numTrisTotal,
                                 ::cuBQL::BuildConfig(),
                                 0,
                                 memResource);
+#endif
       std::cout << "#dpr: ... bvh built." << std::endl;
       
       cudaFree(primBounds);
+      CUBQL_CUDA_SYNC_CHECK();
     }
   
     TrianglesDP::~TrianglesDP()

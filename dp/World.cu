@@ -19,6 +19,10 @@ namespace dp {
   
   void InstancesDPGroup::traceRays(DPRRay *d_rays, DPRHit *d_hits, int numRays)
   {
+    CUBQL_CUDA_SYNC_CHECK();
+    if (!isDevicePointer(d_rays) ||
+        !isDevicePointer(d_hits))
+      throw std::runtime_error("the rays[] and hits[] arrays passed to dpTrace (currently?) have to point to device memory.");
     impl->trace((Ray*)d_rays,
                 (Hit*)d_hits,
                 numRays);
