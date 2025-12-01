@@ -7,17 +7,28 @@
 namespace dp {
   TrianglesDP::TrianglesDP(Context         *context,
                            uint64_t         userData,
-                           const vec3d     *vertexArray,
+                           const vec3d     *_vertexArray,
                            int              vertexCount,
-                           const vec3i     *indexArray,
+                           const vec3i     *_indexArray,
                            int              indexCount)
     : userData(userData),
-      vertexArray(vertexArray),
-      indexArray(indexArray),
       vertexCount(vertexCount),
       indexCount(indexCount),
       context(context)
-  {}
+  {
+    cudaMalloc((void**)&vertexArray,vertexCount*sizeof(vec3d));
+    cudaMemcpy((void*)vertexArray,_vertexArray,
+               vertexCount*sizeof(vec3d),cudaMemcpyDefault);
+    cudaMalloc((void**)&indexArray,indexCount*sizeof(vec3d));
+    cudaMemcpy((void*)indexArray,_indexArray,
+               indexCount*sizeof(vec3d),cudaMemcpyDefault);
+  }
+
+  TrianglesDP::~TrianglesDP()
+  {
+    cudaFree((void*)indexArray);
+    cudaFree((void*)vertexArray);
+  }
   
 } // ::dp
 

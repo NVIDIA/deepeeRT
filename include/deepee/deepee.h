@@ -122,7 +122,11 @@ DPRContext dprContextCreate(DPRContextType contextType,
                             int gpuToUse);
 
 /*! a triangle mesh whose vertices are in double precision, to be used
-  within a double-precision tracing context */
+  within a double-precision tracing context. This function will
+  currently make a *copy* of those arrays to make sure the user
+  doesn't accidentally use host-side and/or temporary data. A future
+  version should arguably allow to specify whether this copy should or
+  shouldn't be done. */
 DPR_API
 DPRTriangles dprCreateTrianglesDP(DPRContext context,
                                   /*! a 64-bit user-provided data that
