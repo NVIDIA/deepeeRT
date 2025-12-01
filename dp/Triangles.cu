@@ -19,9 +19,9 @@ namespace dp {
     cudaMalloc((void**)&vertexArray,vertexCount*sizeof(vec3d));
     cudaMemcpy((void*)vertexArray,_vertexArray,
                vertexCount*sizeof(vec3d),cudaMemcpyDefault);
-    cudaMalloc((void**)&indexArray,indexCount*sizeof(vec3d));
+    cudaMalloc((void**)&indexArray,indexCount*sizeof(vec3i));
     cudaMemcpy((void*)indexArray,_indexArray,
-               indexCount*sizeof(vec3d),cudaMemcpyDefault);
+               indexCount*sizeof(vec3i),cudaMemcpyDefault);
   }
 
   TrianglesDP::~TrianglesDP()

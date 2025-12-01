@@ -86,7 +86,7 @@ namespace miniapp {
   void g_shadeRays(vec4f *d_pixels,
                    DPRRay *d_rays,
                    DPRHit *d_hits,
-                   const vec2i &fbSize)
+                   vec2i fbSize)
   {
     int ix = threadIdx.x+blockIdx.x*blockDim.x;
     int iy = threadIdx.y+blockIdx.y*blockDim.y;
@@ -98,14 +98,17 @@ namespace miniapp {
     DPRHit hit = d_hits[ix+iy*fbSize.x];
     vec3f color = randomColor(hit.primID + 0x290374*hit.geomUserData);
     vec4f pixel = {color.x,color.y,color.z,1.f};
-    d_pixels[ix+iy*fbSize.x] = pixel;
+    int tid = ix+iy*fbSize.x;
+    d_pixels[tid] = pixel;
   }
   
   __global__
   void g_generateRays(DPRRay *d_rays,
-                      const vec2i &fbSize,
+                      vec2i fbSize,
                       const Camera camera)
   {
+    static_assert(sizeof(DPRRay) == sizeof(Ray));
+    
     int ix = threadIdx.x+blockIdx.x*blockDim.x;
     int iy = threadIdx.y+blockIdx.y*blockDim.y;
     
@@ -117,7 +120,9 @@ namespace miniapp {
 
     vec2d pixel = {u,v};
     Ray ray = camera.generateRay(pixel,false);
-    (Ray &)d_rays[ix+iy*fbSize.x] = ray;
+
+    int rayID = ix+iy*fbSize.x;
+    ((Ray *)d_rays)[rayID] = ray;
   }
   
   void main(int ac, char **av)
@@ -126,7 +131,7 @@ namespace miniapp {
     std::string up = "y";
     std::string inFileName;
     std::string outFileName = "deepeeTest.ppm";
-    int terrainRes = 2*1024;
+    int terrainRes = 1*1024;
     vec2i fbSize = { 1024,1024 };
     for (int i=1;i<ac;i++) {
       std::string arg = av[i];
@@ -166,7 +171,7 @@ namespace miniapp {
                                    /* up for orientation */
                                    dz);
 
-    vec2i bs(32,32);
+    vec2i bs(16,16);
     vec2i nb = divRoundUp(fbSize,bs);
     
     std::cout << "#dpm: creating dpr context" << std::endl;
@@ -174,13 +179,17 @@ namespace miniapp {
     std::cout << "#dpm: creating world" << std::endl;
     DPRWorld world = createWorld(dpr,{&object,&terrain});
 
+    CUBQL_CUDA_SYNC_CHECK();
     DPRRay *d_rays = 0;
     cudaMalloc((void **)&d_rays,fbSize.x*fbSize.y*sizeof(DPRRay));
+    CUBQL_CUDA_SYNC_CHECK();
     g_generateRays<<<nb,bs>>>(d_rays,fbSize,camera);
-    
+    CUBQL_CUDA_SYNC_CHECK();
+      
     DPRHit *d_hits = 0;
     cudaMalloc((void **)&d_hits,fbSize.x*fbSize.y*sizeof(DPRHit));
 
+    CUBQL_CUDA_SYNC_CHECK();
     std::cout << "#dpm: calling trace" << std::endl;
     dprTrace(world,d_rays,d_hits,fbSize.x*fbSize.y);
 
