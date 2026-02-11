@@ -44,6 +44,11 @@
 #include <sys/types.h>
 #include <stdint.h>
 
+#define DEEPEERT_VERSION_MAJOR @DEEPEERT_VERSION_MAJOR@
+#define DEEPEERT_VERSION_MINOR @DEEPEERT_VERSION_MINOR@
+#define DEEPEERT_VERSION_PATCH @DEEPEERT_VERSION_PATCH@
+
+
 #ifdef _WIN32
 // for now, we only support a static build for this library
 # if 1 || defined(deepeeRT_STATIC)
@@ -76,6 +81,14 @@ typedef struct _DPRWorld         *DPRWorld;
 typedef struct _DPRContext       *DPRContext;
 
 typedef enum { DPR_CONTEXT_GPU } DPRContextType;
+
+#define DPR_FLAGS_NONE (uint64_t(0))
+/*! if enabled, we will skip all intersections with triangles whose
+    normal faces TOWARDS the origin (ie, cull iff dot(ray.dir,N)<0) */
+#define DPR_CULL_FRONT (uint64_t(1ull<<0))
+/*! if enabled, we will skip all intersections with triangles whose
+    normal faces AWAY the origin (ie, cull iff dot(ray.dir,N)>0) */
+#define DPR_CULL_BACK  (uint64_t(1ull<<1))
 
 struct DPRint3 { int32_t x,y,z; };
 struct DPRvec3 { double  x,y,z; };
@@ -113,7 +126,10 @@ struct DPRHit {
     instID this is *not* a linear ID, but whatever int64 value the
     user specified there. */
   uint64_t geomUserData;
-  double  tHit;
+  union {
+    double  tHit; // << old (pre v0.2) spelling
+    double t;
+  };
   double  u, v;
 };
 
@@ -142,17 +158,29 @@ DPRTriangles dprCreateTrianglesDP(DPRContext context,
                                   DPRint3 *indexArray,
                                   size_t   indexCount);
 
+/*! create an object representing a group of one or more triangle
+    meshes that can then get instantiated (dpr never directly
+    instantiates individual triangle meshes, but always groups of
+    meshes. If you need to instantiate a single mesh you need to first
+    create a TrianglesGroup with that single mesh, then instantiate
+    this). */
 DPR_API
 DPRGroup dprCreateTrianglesGroup(DPRContext,
                                  DPRTriangles *triangleGeomsArray,
                                  size_t        triangleGeomsCount);
 
+/*! creates a world over one or more triangle mesh groups; each
+    instance is defined by a handle to the group it wants to
+    instantaite, plus an associated transform that represents the
+    object-to-world transform supposed to be applied to this
+    geometry. */
 DPR_API
 DPRWorld dprCreateWorldDP(DPRContext,
                           DPRGroup  *instanceGroups,
                           DPRAffine *instanceTransforms,
                           size_t     instanceCount);
 
+/*! traces a set of rays against a previously computed world. */
 DPR_API
 void dprTrace(/*! the world we want the rays to be traced against */
               DPRWorld world,
@@ -162,11 +190,33 @@ void dprTrace(/*! the world we want the rays to be traced against */
               DPRHit *d_hits,
               /*! number of rays that need tracing. d_rays and
                 d_hits *must* have (at least) that many entires */
-              int numRays);
+              int numRays,
+              uint64_t flags = 0ull);
 
+/*! frees a previously created world. This should also free all the
+    memory that this world object has created for internal
+    acceleration structures, but will NOT free the groups that it was
+    created over. It is user's job to free those appropriately */
 DPR_API void dprFreeWorld(DPRWorld world);
+
+/*! frees a previously created triangle mesh. This should also free
+    all the memory that this group has created for internal storage of
+    the triangles it was create over. Once freed world objects created
+    over this triangle mesh (or over objects created over this
+    triangle mesh) are no longer valid and may no longer get traced
+    against. */
 DPR_API void dprFreeTriangles(DPRTriangles triangles);
+
+/*! frees a previously created triangle mesh group. This should also
+    free all the memory that this group has created for internal
+    acceleration structures, but will NOT free the triangle meshes
+    that it was created over. It is user's job to free those
+    appropriately. Once freed world objects created over this group
+    are no longer valid and may no longer get traced against. */
 DPR_API void dprFreeGroup(DPRGroup group);
+
+/*! frees the root context. This is currently NOT guaranteed to free
+  all the objects created within this context. */
 DPR_API void dprFreeContext(DPRContext context);
 
 

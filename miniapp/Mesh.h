@@ -1,9 +1,10 @@
-// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA
+// CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
 
-#include "deepee/deepee.h"
+#include "deepeeRT/deepeeRT.h"
 #include "cuBQL/math/box.h"
 #include "cuBQL/math/linear.h"
 #include <cuda_runtime.h>
@@ -29,6 +30,7 @@ namespace miniapp {
   private:
     void load_binmesh(const std::string &fileName);
     void load_obj(const std::string &fileName);
+    void load_dgef(const std::string &fileName);
   };
   
   /*! helper function that creates a mesh with a terrain-like shape,

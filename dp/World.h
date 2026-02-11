@@ -1,28 +1,34 @@
-// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA
+// CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
 
-#include "dp/Triangles.h"
+#include "dp/Group.h"
 
 namespace dp {
 
   struct Context;
-  struct Group;
+  struct TrianglesGroup;
 
-  struct InstancesDPImpl;
-  
-  struct InstancesDPGroup {
-    InstancesDPGroup(Context *context,
-                     const std::vector<Group *> &groups,
-                     const DPRAffine            *d_transforms);
-    
-    void traceRays(DPRRay *d_rays, DPRHit *d_hits, int numRays);
-    
-    std::vector<Group *> const groups;
-    const DPRAffine     *const d_transforms;
-    Context             *const context;
-    std::shared_ptr<InstancesDPImpl> impl;
+  /*! a group of double precision instances; each instance is defined
+      by a affine transforms and TrianglesDPGroup that it refers to */
+  struct InstanceGroup : public Group {
+    InstanceGroup(Context *context,
+                  const std::vector<TrianglesGroup *> &groups,
+                  const DPRAffine            *transforms)
+      : Group(context)
+    {}
+
+    /*! implements dprTrace() */
+    virtual void traceRays(DPRRay *d_rays,
+                           DPRHit *d_hits,
+                           int numRays,
+                           uint64_t flags) = 0;
+
+    /* iw - note this base class will NOT store any pointers to host
+       data, it's the job of the derived class(es) to store data as,
+       if, and where required*/
   };
     
 } // ::dp

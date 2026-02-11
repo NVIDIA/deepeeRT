@@ -4,9 +4,11 @@
 #include "Mesh.h"
 #include <fstream>
 #include <random>
+#include <cuBQL/math/affine.h>
 
 namespace miniapp {
-
+  using cuBQL::affine3d;
+  
   box3d Mesh::bounds()
   {
     box3d bb;
@@ -55,6 +57,8 @@ namespace miniapp {
       load_obj(fileName);
     else if (ext == ".binmesh")
       load_binmesh(fileName);
+    else if (ext == ".dgef")
+      load_dgef(fileName);
     else
       throw std::runtime_error("un-recognized or un-supported file extension '"+ext+"'");
   }
@@ -80,6 +84,52 @@ namespace miniapp {
     in.read((char*)indices.data(),numIndices*sizeof(indices[0]));
   }
   
+
+  void Mesh::load_dgef(const std::string &fileName)
+  {
+    vertices.clear();
+    indices.clear();
+    
+    std::ifstream in(fileName.c_str(),std::ios::binary);
+
+    size_t header;
+    in.read((char*)&header,sizeof(header));
+
+    size_t numMeshes;
+    in.read((char*)&numMeshes,sizeof(numMeshes));
+    std::vector<Mesh> meshes(numMeshes);
+    for (int meshID=0;meshID<numMeshes;meshID++) {
+      Mesh &mesh = meshes[meshID];
+      
+      size_t count;
+      in.read((char*)&count,sizeof(count));
+      mesh.vertices.resize(count);
+
+      in.read((char*)mesh.vertices.data(),
+              count*sizeof(vec3d));
+      
+      in.read((char*)&count,sizeof(count));
+      for (size_t i=0;i<count;i++) {
+        vec3ul idx;
+        in.read((char*)&idx,sizeof(idx));
+        mesh.indices.push_back({(int)idx.x,(int)idx.y,(int)idx.z});
+      }
+    }
+    
+    size_t numInstances;
+    in.read((char*)&numInstances,sizeof(numInstances));
+    for (int instID=0;instID<numInstances;instID++) {
+      affine3d xfm;
+      in.read((char*)&xfm,sizeof(xfm)); 
+      size_t meshID;
+      in.read((char*)&meshID,sizeof(meshID)); 
+    }
+
+    this->vertices = meshes[0].vertices;
+    this->indices = meshes[0].indices;
+  }
+  
+
   void Mesh::translate(vec3d delta)
   {
     for (auto &v : vertices)

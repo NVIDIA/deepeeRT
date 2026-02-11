@@ -24,7 +24,8 @@ namespace miniapp {
     /*! generate ray for a given pixel/image plane coordinate. based on
       how the camera was created this could be either a orthogonal or
       a perspective camera (see Camera.cpp) */
-    inline __device__ Ray generateRay(vec2d pixel, bool dbg=false) const;
+    inline __device__
+    Ray generateRay(vec2d pixel, bool dbg=false) const;
 
     struct {
       vec3d v,du,dv;
@@ -45,6 +46,12 @@ namespace miniapp {
     Ray ray;
     ray.origin
       = origin.v+pixel.x*origin.du+pixel.y*origin.dv;
+    if (dbg)
+      printf("camera org %f %f %f\n",
+             (float)origin.v.x,
+             (float)origin.v.y,
+             (float)origin.v.z);
+
     ray.direction
       = normalize(direction.v+pixel.x*direction.du+pixel.y*direction.dv);
     ray.tMin = 0.;

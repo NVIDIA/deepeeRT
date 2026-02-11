@@ -10,7 +10,9 @@ namespace dp {
   struct TrianglesDPGroup;
   struct InstancesDPGroup;
   
-  /*! CAREFUL: this HAS to match the data layout of DPRRay in deepee.h !*/
+  /*! Internal representation of a ray in the input ray
+      queue. CAREFUL: this HAS to match the data layout of DPRRay in
+      deepee.h !*/
   struct Ray {
     vec3d origin;
     vec3d direction;
@@ -18,14 +20,18 @@ namespace dp {
     double  tMax;
   };
 
-  /*! CAREFUL: this HAS to match the data layout of DPRHit in deepee.h !*/
+  /*! Internal representation of a hit in the hit queue to be traced
+      against. CAREFUL: this HAS to match the data layout of DPRHit in
+      deepee.h !*/
   struct Hit {
     /*! index of prim within the geometry it was created in. A value of
       '-1' means 'no hit' */
     int     primID;
+    
     /* index of the instance that contained the hit point. Undefined if
        on hit occurred */
     int     instID;
+    
     /*! user-supplied geom ID (the one specified during geometry create
       call) for the geometry that contained the hit. Unlike primID and
       instID this is *not* a linear ID, but whatever int64 value the
@@ -35,41 +41,6 @@ namespace dp {
     double  u, v;
   };
 
-  /*! implements a group of double-precision triangles */
-  struct TrianglesDPImpl {
-    TrianglesDPImpl(TrianglesDPGroup *const fe) : fe(fe) {}
-    virtual ~TrianglesDPImpl() = default;
-    TrianglesDPGroup *const fe;
-  };
-    
-  /*! implements a group of double-precision instances, including the
-    actual trace() method */
-  struct InstancesDPImpl {
-    InstancesDPImpl(InstancesDPGroup *const fe) : fe(fe) {}
-    virtual ~InstancesDPImpl() = default;
 
-    virtual void trace(Ray *rays,
-                       Hit *hits,
-                       int numRays) = 0;
-    
-    InstancesDPGroup *const fe;
-  };
-
-  /*! implements an actual backend for a double-precision ray tracing
-      context. primarily acts as 'factory' for instance and geometry
-      groups that then do the actual work */
-  struct Backend {
-    Backend(Context *const context);
-    virtual ~Backend() = default;
-    
-    virtual std::shared_ptr<InstancesDPImpl>
-    createInstancesDPImpl(dp::InstancesDPGroup *fe) = 0;
-    
-    virtual std::shared_ptr<TrianglesDPImpl>
-    createTrianglesDPImpl(dp::TrianglesDPGroup *fe) = 0;
-    
-    Context *const context;
-    int const gpuID;
-  };
-  
+  static Context *createBackend(int gpuID);
 } // ::dp

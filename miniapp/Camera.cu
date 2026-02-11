@@ -23,7 +23,7 @@ namespace miniapp {
 
     dv *= scale;
     du *= scale*aspect;
-    
+
 #if 0
     // for testing: this is a ortho camera with parallel rays and
     // different origins all n a plane

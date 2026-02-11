@@ -5,10 +5,4 @@
 #include "dp/Context.h"
 
 namespace dp {
-
-  Backend::Backend(Context *const context)
-    : context(context),
-      gpuID(context->gpuID)
-  {}
-
 } // ::dp

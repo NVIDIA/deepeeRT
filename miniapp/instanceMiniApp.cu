@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-#include "Mesh.h"
 #include "Camera.h"
+#include "DGEF.h"
 #include <fstream>
 
 namespace miniapp {
@@ -49,41 +49,54 @@ namespace miniapp {
   }
   
   DPRWorld createWorld(DPRContext context,
-                       const std::vector<Mesh *> &meshes)
+                       dgef::Scene *scene)
   {
-      CUBQL_CUDA_SYNC_CHECK();
-    std::vector<DPRTriangles> geoms;
-    int meshID = 0;
-    for (auto pm : meshes) {
-      vec3d *d_vertices = 0;
-      vec3i *d_indices = 0;
-      pm->upload(d_vertices,d_indices);
-      std::cout << "#dpm: creating dpr triangle mesh w/ "
-                << prettyNumber(pm->indices.size()) << " triangles"
-                << std::endl;
-      DPRTriangles geom = dprCreateTrianglesDP(context,
-                                               meshID++,
-                                               (DPRvec3*)d_vertices,
-                                               pm->vertices.size(),
-                                               (DPRint3*)d_indices,
-                                               pm->indices.size());
-      CUBQL_CUDA_SYNC_CHECK();
-      geoms.push_back(geom);
-    }
+    std::map<dgef::Object *, DPRGroup> objects;
     CUBQL_CUDA_SYNC_CHECK();
-    std::cout << "#dpm: creating dpr triangles group w/ "
-              << geoms.size() << " meshes" << std::endl;
-    DPRGroup group = dprCreateTrianglesGroup(context,
-                                             geoms.data(),
-                                             geoms.size());
+
+    for (auto inst : scene->instances)
+      objects[inst->object] = 0;
+
+    std::cout << "#dpm: creating " << objects.size() << " objects" << std::endl;
+    int meshID = 0;
+    for (auto &pairs : objects) {
+      auto obj = pairs.first;
+      std::vector<DPRTriangles> geoms;
+      for (auto pm : obj->meshes) {
+        std::cout << "#dpm: creating dpr triangle mesh w/ "
+                  << prettyNumber(pm->indices.size()) << " triangles"
+                  << std::endl;
+        DPRTriangles geom
+          = dprCreateTrianglesDP(context,
+                                 meshID++,
+                                 (DPRvec3*)pm->vertices.data(),
+                                 pm->vertices.size(),
+                                 (DPRint3*)pm->indices.data(),
+                                 pm->indices.size());
+        CUBQL_CUDA_SYNC_CHECK();
+        geoms.push_back(geom);
+      }
+      CUBQL_CUDA_SYNC_CHECK();
+      
+      DPRGroup group = dprCreateTrianglesGroup(context,
+                                               geoms.data(),
+                                               geoms.size());
+      objects[obj] = group;
+    }
     CUBQL_CUDA_SYNC_CHECK();
     
     std::cout << "#dpm: creating dpr world" << std::endl;
+    std::vector<affine3d> xfms;
+    std::vector<DPRGroup> groups;
+    for (auto inst : scene->instances) {
+      xfms.push_back(inst->xfm);
+      groups.push_back(objects[inst->object]);
+    }
     DPRWorld world = dprCreateWorldDP(context,
-                                      &group,
-                                      nullptr,
-                                      1);
-      CUBQL_CUDA_SYNC_CHECK();
+                                      groups.data(),
+                                      (DPRAffine*)xfms.data(),
+                                      groups.size());
+    CUBQL_CUDA_SYNC_CHECK();
     return world;
   }
 
@@ -142,49 +155,37 @@ namespace miniapp {
   
   void main(int ac, char **av)
   {
-    double scale = 3;
-    std::string up = "y";
     std::string inFileName;
     std::string outFileName = "deepeeTest.ppm";
-    int terrainRes = 1*1024;
     vec2i fbSize = { 1024,1024 };
+    uint64_t flags = 0;
     for (int i=1;i<ac;i++) {
       std::string arg = av[i];
       if (arg[0] != '-') {
         inFileName = arg;
-      } else if (arg == "-up") {
-        up = av[++i];
+      } else if (arg == "-bc" || arg == "--backface-culling") {
+        flags |= DPR_CULL_BACK;
+      } else if (arg == "-fc" || arg == "--frontface-culling") {
+        flags |= DPR_CULL_FRONT;
       } else if (arg == "-or" || arg == "--output-res") {
         fbSize.x = std::stoi(av[++i]);
         fbSize.y = std::stoi(av[++i]);
-      } else if (arg == "-tr" || arg == "--terrain-res") {
-        terrainRes = std::stoi(av[++i]);
-      } else if (arg == "-s" || arg == "--scale") {
-        scale = std::stof(av[++i]);
       } else
         throw std::runtime_error("un-recognized cmdline arg '"+arg+"'");
     }
     if (inFileName.empty())
       throw std::runtime_error("no input file name specified");
 
-    Mesh object;
-    object.load(inFileName);
-    scale = scale * length(object.bounds().size());
-    vec3d dx,dy,dz;
-    getFrame(up,dx,dy,dz);
-    
-    object.translate(scale*(dx+dy)-object.center());
+    dgef::Scene *scene = dgef::Scene::load(inFileName);
 
-    std::cout << "#dpm: creating tessellated quad for base terrain" << std::endl;
-    Mesh terrain = generateTessellatedQuad(terrainRes,dx,dy,dz,2.f*scale);
-    terrain.translate(-.5f*object.bounds().size().z*dz);
+    box3d bounds = scene->bounds();
     Camera camera = generateCamera(fbSize,
                                    /* bounds to focus on */
-                                   object.bounds(),
+                                   bounds,
                                    /* point we're looking from*/
-                                   -2.*scale*(dx+dy)+scale*dz,
+                                   length(bounds.size())*vec3d(2,1,4),
                                    /* up for orientation */
-                                   dz);
+                                   vec3d(0,1,0));
 
     vec2i bs(16,16);
     vec2i nb = divRoundUp(fbSize,bs);
@@ -192,7 +193,7 @@ namespace miniapp {
     std::cout << "#dpm: creating dpr context" << std::endl;
     DPRContext dpr = dprContextCreate(DPR_CONTEXT_GPU,0);
     std::cout << "#dpm: creating world" << std::endl;
-    DPRWorld world = createWorld(dpr,{&object,&terrain});
+    DPRWorld world = createWorld(dpr,scene);
 
     CUBQL_CUDA_SYNC_CHECK();
     DPRRay *d_rays = 0;
@@ -206,7 +207,7 @@ namespace miniapp {
 
     CUBQL_CUDA_SYNC_CHECK();
     std::cout << "#dpm: calling trace" << std::endl;
-    dprTrace(world,d_rays,d_hits,fbSize.x*fbSize.y);
+    dprTrace(world,d_rays,d_hits,fbSize.x*fbSize.y,flags);
 
     std::cout << "#dpm: shading rays" << std::endl;
     vec4f *m_pixels = 0;

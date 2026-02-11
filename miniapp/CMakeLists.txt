@@ -11,3 +11,13 @@ add_executable(dpMiniApp
 )
 target_link_libraries(dpMiniApp PUBLIC deepeeRT)
 
+add_executable(dpInstanceMiniApp
+  DGEF.h
+  DGEF.cpp
+  import_OBJ.cpp
+  Camera.h
+  Camera.cu
+  instanceMiniApp.cu
+)
+target_link_libraries(dpInstanceMiniApp PUBLIC deepeeRT)
+

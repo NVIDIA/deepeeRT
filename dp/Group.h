@@ -3,31 +3,22 @@
 
 #pragma once
 
-#include "dp/Triangles.h"
+#include "dp/common.h"
 
 namespace dp {
 
   struct Context;
-  struct TrianglesDPImpl;
 
-  /*! allows for referencing a specific primitive within a specific
-      geometry within multiple geometries that a group may be built
-      over */
-  struct PrimRef {
-    int geomID;
-    int primID;
-  };
-  
+  /*! abstract base class of a group of one or more intersectable
+      things that share an acceleration structures. will be subclassed
+      into InstancesGroup and TrianglesGroup, and then implemented in
+      each backend based on how this backend works */
   struct Group {
-  };
-  
-  struct TrianglesDPGroup : public Group {
-    TrianglesDPGroup(Context *context,
-                     const std::vector<TrianglesDP *> &geoms);
-
-    std::vector<TrianglesDP *> geoms;
+    Group(Context *const context);
+    virtual ~Group() = default;
+    
+    /*! context that this group was created in */
     Context *const context;
-    std::shared_ptr<TrianglesDPImpl> impl;
   };
 
 } // ::dp
