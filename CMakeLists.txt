@@ -63,6 +63,9 @@ add_subdirectory(dp)
 if (NOT (${CMAKE_CURRENT_SOURCE_DIR} STREQUAL ${CMAKE_SOURCE_DIR}))
   # don't build miniapp if this is a subproject
 else()
+  # disabled: requires to be able to do find_package(deepeeRT), which
+  # isn't supported in CI yet.
+  #
   add_subdirectory(miniapp)
 endif()
 

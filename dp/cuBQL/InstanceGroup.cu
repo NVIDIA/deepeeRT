@@ -51,6 +51,8 @@ namespace dp {
                           (const DPRAffine *)transforms),
         numInstances((int)groups.size())
     {
+      if (groups.size() == 1 && !transforms)
+        doesNotActuallyUseInstancing = true;
 #if DP_OMP
 #else
       CUBQL_CUDA_SYNC_CHECK();
@@ -203,15 +205,14 @@ namespace dp {
       return { d_instanceDDs, d_worldToObjectXfms, bvh };
     }
 
-    // __global__
     __dp_global
-    void g_traceRays(Kernel kernel,
-                     /*! the device data for the instancegroup itself */
-                     InstanceGroup::DD world,
-                     DPRRay *rays,
-                     DPRHit *hits,
-                     int numRays,
-                     uint64_t flags)
+    void g_traceRays_twoLevel(Kernel kernel,
+                              /*! the device data for the instancegroup itself */
+                              InstanceGroup::DD world,
+                              DPRRay *rays,
+                              DPRHit *hits,
+                              int numRays,
+                              uint64_t flags)
     {
       int tid = kernel.workIdx();//threadIdx.x+blockIdx.x*blockDim.x;
       if (tid >= numRays) return;
@@ -291,30 +292,114 @@ namespace dp {
     }
 
     
+    __dp_global
+    void g_traceRays_noInstances(Kernel kernel,
+                                 /*! the device data for the instancegroup itself */
+                                 InstanceGroup::DD world,
+                                 DPRRay *rays,
+                                 DPRHit *hits,
+                                 int numRays,
+                                 uint64_t flags)
+    {
+      int tid = kernel.workIdx();//threadIdx.x+blockIdx.x*blockDim.x;
+      if (tid >= numRays) return;
+
+#ifdef NDEBUG
+      const bool dbg = false;
+#else
+      bool dbg = false;//(tid == 512*1024+512);
+#endif
+
+      DPRHit hit = hits[tid];
+      hit.primID = -1;
+      hit.instID = -1;
+      hit.t = 1e30;
+      
+      auto object_instance = world.instancedGroups[0];
+
+      ::cuBQL::ray3d worldRay((const vec3d&)rays[tid].origin,
+                              (const vec3d&)rays[tid].direction,
+                              rays[tid].tMin,
+                              rays[tid].tMax);
+      
+      auto intersectPrim
+        = [&hit,&worldRay,object_instance,flags,dbg](uint32_t primID)
+        -> double
+      {
+        RayTriangleIntersection isec;
+        auto &group = object_instance.group;
+        PrimRef prim = group.primRefs[primID];
+        const TriangleDP tri = group.getTriangle(prim);
+
+        auto getNormal = [tri]() { return cross(tri.b-tri.a,tri.c-tri.a); };
+        bool culled = false;
+        if (flags & DPR_CULL_FRONT)
+          culled |= (dot(getNormal(),worldRay.direction) <= 0.);
+        if (flags & DPR_CULL_BACK)
+          culled |= (dot(getNormal(),worldRay.direction) >= 0.);
+        if (!culled && isec.compute(worldRay,tri)) {
+          hit.primID = prim.primID;
+          hit.geomUserData = group.meshes[prim.geomID].userData;
+          hit.instID = 0;//object_instance.instID;
+          // hit.geomUserData = group.meshes[prim.geomID].userData;
+          hit.t = isec.t;
+          worldRay.tMax = isec.t;
+        }
+        return worldRay.tMax;
+      };
+      
+      ::cuBQL::shrinkingRayQuery::forEachPrim
+          (intersectPrim,object_instance.group.bvh,worldRay,dbg);
+      
+      hits[tid] = hit;
+    }
+
+    
+
+
     void InstanceGroup::traceRays(DPRRay *d_rays,
                                   DPRHit *d_hits,
                                   int numRays,
                                   uint64_t flags)
     {
+      if (doesNotActuallyUseInstancing) {
 #if DP_OMP
 # pragma omp target device(context->gpuID)
 # pragma omp teams distribute parallel for
-      for (int i=0;i<numRays;i++)
-        g_traceRays(Kernel{i},
-                    getDD(),
-                    d_rays,d_hits,numRays,
-                    flags);
+        for (int i=0;i<numRays;i++)
+          g_traceRays_noInstances(Kernel{i},
+                                   getDD(),
+                                   d_rays,d_hits,numRays,
+                                   flags);
 #else
-      int bs = 128;
-      int nb = divRoundUp(numRays,bs);
-      g_traceRays<<<nb,bs>>>(Kernel(),
-                             getDD(),
-                             d_rays,d_hits,numRays,
-                             flags);
-      cudaDeviceSynchronize();
+        int bs = 128;
+        int nb = divRoundUp(numRays,bs);
+        g_traceRays_noInstances<<<nb,bs>>>(Kernel(),
+                                            getDD(),
+                                            d_rays,d_hits,numRays,
+                                            flags);
+        cudaDeviceSynchronize();
 #endif
-    }
-      
+      } else {
+#if DP_OMP
+# pragma omp target device(context->gpuID)
+# pragma omp teams distribute parallel for
+        for (int i=0;i<numRays;i++)
+          g_traceRays_twoLevel(Kernel{i},
+                               getDD(),
+                               d_rays,d_hits,numRays,
+                               flags);
+#else
+        int bs = 128;
+        int nb = divRoundUp(numRays,bs);
+        g_traceRays_twoLevel<<<nb,bs>>>(Kernel(),
+                                        getDD(),
+                                        d_rays,d_hits,numRays,
+                                        flags);
+        cudaDeviceSynchronize();
+#endif
+      }
+    }      
   }
 }
 

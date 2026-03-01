@@ -80,39 +80,9 @@ namespace dp {
       createTrianglesGroup(const std::vector<dp::TriangleMesh *> &geoms) override;
     };
 
-#ifdef __CUDACC__
     // ==================================================================
     // INLINE IMPLEMENTATION SECTION
     // ==================================================================
-    template<typename T> inline
-    AutoUploadArray<T>::AutoUploadArray(Context *context,
-                                        const T *elements,
-                                        size_t count)
-      : context(context)
-    {
-      this->count = count;
-      // if (isDevicePointer(elements)) {
-      //   this->elements = elements;
-      //   this->needsCudaFree = false;
-      // } else {
-      // iw - for now, ALWAYS create a copy
-#if DP_OMP
-      this->elements = (T*)omp_target_alloc(count*sizeof(T),
-                                            context->gpuID);
-      omp_target_memcpy((void*)this->elements,(void*)elements,
-                        count*sizeof(T),
-                        0,0,
-                        context->gpuID,
-                        context->hostID);
-#else
-      CUBQL_CUDA_SYNC_CHECK();
-      cudaMalloc((void **)&this->elements,count*sizeof(T));
-      cudaMemcpy((void*)this->elements,(void*)elements,count*sizeof(T),
-                 cudaMemcpyDefault);
-      CUBQL_CUDA_SYNC_CHECK();
-#endif
-      this->needsCudaFree = true;
-    }
 
     template<typename T> inline
     AutoUploadArray<T> &
@@ -124,16 +94,54 @@ namespace dp {
       needsCudaFree = other.needsCudaFree; other.needsCudaFree = 0;
       return *this;
     }
-    
+
+
+#ifdef DP_OMP
+    template<typename T> inline
+    AutoUploadArray<T>::AutoUploadArray(Context *context,
+                                        const T *elements,
+                                        size_t count)
+      : context(context)
+    {
+      this->count = count;
+      this->elements = (T*)omp_target_alloc(count*sizeof(T),
+                                            context->gpuID);
+      omp_target_memcpy((void*)this->elements,(void*)elements,
+                        count*sizeof(T),
+                        0,0,
+                        context->gpuID,
+                        context->hostID);
+      this->needsCudaFree = true;
+    }
+
     template<typename T> inline
     AutoUploadArray<T>::~AutoUploadArray() {
-#if DP_OMP
       if (needsCudaFree)
         omp_target_free((void*)elements,context->gpuID);
-#else
-      if (needsCudaFree) cudaFree((void*)elements);
-      CUBQL_CUDA_SYNC_CHECK();
+    }
 #endif
+
+#ifdef __CUDACC__
+    template<typename T> inline
+    AutoUploadArray<T>::AutoUploadArray(Context *context,
+                                        const T *elements,
+                                        size_t count)
+      : context(context)
+    {
+      this->count = count;
+      CUBQL_CUDA_SYNC_CHECK();
+      cudaMalloc((void **)&this->elements,count*sizeof(T));
+      cudaMemcpy((void*)this->elements,(void*)elements,count*sizeof(T),
+                 cudaMemcpyDefault);
+      CUBQL_CUDA_SYNC_CHECK();
+      this->needsCudaFree = true;
+    }
+
+    template<typename T> inline
+    AutoUploadArray<T>::~AutoUploadArray() {
+      if (needsCudaFree)
+        cudaFree((void*)elements);
+      CUBQL_CUDA_SYNC_CHECK();
     }
 #endif
     

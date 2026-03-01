@@ -8,6 +8,23 @@
 #include "dp/cuBQL/Triangles.h"
 #include "dp/cuBQL/InstanceGroup.h"
 
+#ifdef DP_OMP
+# include "cuBQL/builder/omp.h"
+// do NOT instantiate cuda builder
+namespace cuBQL {
+  namespace omp {
+    template
+    void spatialMedian(BinaryBVH<double,3>   &bvh,
+                       const box_t<double,3> *boxes,
+                       uint32_t          numPrims,
+                       BuildConfig       buildConfig,
+                       Context          *ctx);
+    template
+    void freeBVH(BinaryBVH<double,3> &bvh,
+                 Context          *ctx);
+  }
+}
+#else
 namespace cuBQL {
   namespace cpu {
     template
@@ -26,7 +43,7 @@ namespace cuBQL {
                     uint32_t          numPrims,
                     BuildConfig       buildConfig,
                     cudaStream_t       s,
-                    GpuMemoryResource &memResource);
+                    cuBQL::GpuMemoryResource &memResource);
 
     template
     void free(BinaryBVH<double,3> &bvh,
@@ -34,7 +51,7 @@ namespace cuBQL {
               GpuMemoryResource& memResource);
   }
 }
-
+#endif
 
 namespace dp {
   namespace cubql_cuda {
