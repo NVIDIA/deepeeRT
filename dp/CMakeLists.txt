@@ -35,6 +35,7 @@ add_library(deepeeRT STATIC
 )
 target_include_directories(deepeeRT PUBLIC
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+  $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>
   )
 
 add_subdirectory(cuBQL)
@@ -52,3 +53,6 @@ set_target_properties(deepeeRT
   CUDA_USE_STATIC_CUDA_RUNTIME ON
   CUDA_RESOLVE_DEVICE_SYMBOLS  ON
 )
+
+add_library(deepeeRT::deepeeRT ALIAS deepeeRT)
+

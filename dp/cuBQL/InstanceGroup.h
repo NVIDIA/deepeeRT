@@ -37,6 +37,10 @@ namespace dp {
                      int numRays,
                      uint64_t flags) override;
 
+      /*! if this scene contains a single instance, and that has a
+          unit transform, then it can be traced with a single-level,
+          no instancing kernel */
+      bool               doesNotActuallyUseInstancing = false;
       int                numInstances = 0;
       InstancedObjectDD *d_instanceDDs = 0;
       affine3d          *d_worldToObjectXfms = 0;

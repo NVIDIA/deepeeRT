@@ -1,19 +1,31 @@
 # SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
+cmake_minimum_required(VERSION 3.24)
+
 set(DEEPEERT_VERSION_MAJOR 0)
-set(DEEPEERT_VERSION_MINOR 3)
-set(DEEPEERT_VERSION_PATCH 2)
+set(DEEPEERT_VERSION_MINOR 4)
+set(DEEPEERT_VERSION_PATCH 1)
 set(DEEPEERT_VERSION ${DEEPEERT_VERSION_MAJOR}.${DEEPEERT_VERSION_MINOR}.${DEEPEERT_VERSION_PATCH})
   
 set(CMAKE_BUILD_TYPE_INIT "Release")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CUDA_ARCHITECTURES native)
 
-cmake_minimum_required(VERSION 3.16)
+option(DEEPEERT_OMP "Enable experimental OpenMP build" OFF)
+mark_as_advanced(DEEPEERT_OMP)
+
+cmake_minimum_required(VERSION 3.24)
 cmake_policy(SET CMP0048 NEW)
-project(deepeeRT VERSION ${DEEPEERT_VERSION} LANGUAGES C CXX CUDA)
+if (DEEPEERT_OMP)
+  project(DeePeeRT VERSION ${DEEPEERT_VERSION} LANGUAGES C CXX)
+#  set(DEEPEERT_OMP_FLAGS CACHE STRING "-mp=gpu")
+#  set(CMAKE_CXX_FLAGS ${DEEPEERT_OMP_FLAGS})
+  set(CUBQL_DISABLE_CUDA ON)
+else()
+  set(CMAKE_CUDA_ARCHITECTURES native)
+  project(DeePeeRT VERSION ${DEEPEERT_VERSION} LANGUAGES C CXX CUDA)
+endif()
 
 if(NOT SET_UP_CONFIGURATIONS_DONE)
   set(SET_UP_CONFIGURATIONS_DONE 1)
@@ -51,7 +63,10 @@ add_subdirectory(dp)
 if (NOT (${CMAKE_CURRENT_SOURCE_DIR} STREQUAL ${CMAKE_SOURCE_DIR}))
   # don't build miniapp if this is a subproject
 else()
-#  add_subdirectory(miniapp)
+  # disabled: requires to be able to do find_package(deepeeRT), which
+  # isn't supported in CI yet.
+  #
+  add_subdirectory(miniapp)
 endif()
 
 
@@ -100,7 +115,6 @@ install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/cmake
 install(
   TARGETS
   deepeeRT
-#  EXPORT deepeeRT
   EXPORT deepeeRT-config
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   NAMELINK_SKIP

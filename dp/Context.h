@@ -43,6 +43,9 @@ namespace dp {
     
     /*! the cuda gpu ID that this device is going to run on */
     int const gpuID;
+#ifdef DP_OMP
+    int hostID = -1;
+#endif
   };
   
 } // ::dp
