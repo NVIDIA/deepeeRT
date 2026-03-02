@@ -1,11 +1,12 @@
-// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// SPDX-FileCopyrightText: Copyright (c) 2025
+// NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
 
-#include "dp/common.h"
+#include "dprt/common.h"
 
-namespace dp {
+namespace dprt {
   struct Context;
   struct TrianglesDPGroup;
   struct InstancesDPGroup;
@@ -15,8 +16,8 @@ namespace dp {
       deepee.h !*/
   struct Ray {
     vec3d origin;
-    vec3d direction;
     double  tMin;
+    vec3d direction;
     double  tMax;
   };
 
@@ -43,4 +44,4 @@ namespace dp {
 
 
   static Context *createBackend(int gpuID);
-} // ::dp
+} // ::dprt

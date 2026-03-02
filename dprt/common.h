@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "deepeeRT/deepeeRT.h"
+#include "dprt/dprt.h"
 #include "cuBQL/math/box.h"
 #include "cuBQL/math/linear.h"
 #include <cuda_runtime.h>
@@ -14,7 +14,7 @@
 #include <string>
 #include <iostream>
 
-namespace dp {
+namespace dprt {
   using namespace ::cuBQL;
 
   /*! helper class that sets the active cuda device to the given gpuID
@@ -42,4 +42,4 @@ namespace dp {
     return attributes.devicePointer != 0;
   }
 
-}
+} // ::dprt

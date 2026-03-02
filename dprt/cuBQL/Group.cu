@@ -1,4 +1,5 @@
-// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA
+// CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 #include "dp/cuBQL/CuBQLBackend.h"
@@ -6,7 +7,7 @@
 namespace dp {
   namespace cubql_cuda {
     __global__
-    void g_traceFirstGroupOnly(TrianglesDP::DevGroup group,
+    void g_traceFirstGroupOnly(Triangles::DevGroup group,
                                Ray *rays,
                                Hit *hits,
                                int numRays)
@@ -66,7 +67,7 @@ namespace dp {
                       /*! the list of instance transforms */
                       const DPRAffine     *const d_transforms,
                       /*! the list of instantiated groups */
-                      const TrianglesDP::DevGroup *d_instantiatedGroups,
+                      const TrianglesDPRT::DevGroup *d_instantiatedGroups,
                       Ray *rays,
                       Hit *hits,
                       int numRays)
@@ -85,7 +86,7 @@ namespace dp {
       hit.instID = -1;
       struct {
         int instID = -1;
-        TrianglesDP::Group group;
+        TrianglesDPRT::Group group;
         ::cuBQL::ray3d ray;
       } object;
       ::cuBQL::ray3d worldRay(rays[tid].origin,
@@ -137,17 +138,17 @@ namespace dp {
     }
 
     
-    struct InstancesDP : public dp::InstancesDPImpl {
+    struct InstancesDP : public dprt::InstancesDPImpl {
       InstancesDP(CuBQLCUDABackend *be,
-                  dp::InstancesDPGroup *fe)
+                  dprt::InstancesDPGroup *fe)
         : InstancesDPImpl(fe), be(be)
       {
         int numInstances = fe->instances.size();
         if (numInstances == 0) return;
 
-        std::vector<TrianglesDP::DevGroup> instancedGroups;
+        std::vector<TrianglesDPRT::DevGroup> instancedGroups;
         for (auto feGroup : fe->groups) {
-          dp::TrianglesDPGroup *group = feGroup
+          dprt::TrianglesDPGroup *group = feGroup
           instancedGroups.push_back(inst
                                     }
         cudaMalloc((void **)&d_instancedGroups,
@@ -160,11 +161,11 @@ namespace dp {
                  Hit *hits,
                  int numRays) override;
 
-      TrianglesDP::DevGroup *d_instancedGroups = 0;
+      TrianglesDPRT::DevGroup *d_instancedGroups = 0;
       CuBQLCUDABackend *const be;
     };
 
-    void InstancesDP::trace(Ray *rays,
+    void InstancesDPRT::trace(Ray *rays,
                             Hit *hits,
                             int numRays) 
     {
@@ -200,11 +201,11 @@ namespace dp {
   }
 
   std::shared_ptr<InstancesDPImpl>
-  CuBQLCUDABackend::createInstancesDPImpl(dp::InstancesDPGroup *fe)
+  CuBQLCUDABackend::createInstancesDPImpl(dprt::InstancesDPGroup *fe)
   { return std::make_shared<cubql_cuda::InstancesDP>(this,fe); }
     
   std::shared_ptr<TrianglesDPImpl>
-  CuBQLCUDABackend::createTrianglesDPImpl(dp::TrianglesDPGroup *fe) 
+  CuBQLCUDABackend::createTrianglesDPImpl(dprt::TrianglesDPGroup *fe) 
   { return std::make_shared<cubql_cuda::TrianglesDP>(this,fe); }
   
 }

@@ -1,4 +1,5 @@
-// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA
+// CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Camera.h"
@@ -48,10 +49,10 @@ namespace miniapp {
     throw std::runtime_error("unhandled 'up'-specifier of '"+up+"'");
   }
   
-  DPRWorld createWorld(DPRContext context,
+  DPRTModel createModel(DPRTContext context,
                        dgef::Scene *scene)
   {
-    std::map<dgef::Object *, DPRGroup> objects;
+    std::map<dgef::Object *, DPRTGroup> objects;
     CUBQL_CUDA_SYNC_CHECK();
 
     for (auto inst : scene->instances)
@@ -61,50 +62,50 @@ namespace miniapp {
     int meshID = 0;
     for (auto &pairs : objects) {
       auto obj = pairs.first;
-      std::vector<DPRTriangles> geoms;
+      std::vector<DPRTTriangles> geoms;
       for (auto pm : obj->meshes) {
-        std::cout << "#dpm: creating dpr triangle mesh w/ "
+        std::cout << "#dpm: creating dprt triangle mesh w/ "
                   << prettyNumber(pm->indices.size()) << " triangles"
                   << std::endl;
-        DPRTriangles geom
-          = dprCreateTrianglesDP(context,
+        DPRTTriangles geom
+          = dprtCreateTriangles(context,
                                  meshID++,
-                                 (DPRvec3*)pm->vertices.data(),
+                                 (DPRTvec3*)pm->vertices.data(),
                                  pm->vertices.size(),
-                                 (DPRint3*)pm->indices.data(),
+                                 (DPRTint3*)pm->indices.data(),
                                  pm->indices.size());
         CUBQL_CUDA_SYNC_CHECK();
         geoms.push_back(geom);
       }
       CUBQL_CUDA_SYNC_CHECK();
       
-      DPRGroup group = dprCreateTrianglesGroup(context,
+      DPRTGroup group = dprtCreateTrianglesGroup(context,
                                                geoms.data(),
                                                geoms.size());
       objects[obj] = group;
     }
     CUBQL_CUDA_SYNC_CHECK();
     
-    std::cout << "#dpm: creating dpr world" << std::endl;
+    std::cout << "#dpm: creating dprt model" << std::endl;
     std::vector<affine3d> xfms;
-    std::vector<DPRGroup> groups;
+    std::vector<DPRTGroup> groups;
     for (auto inst : scene->instances) {
       xfms.push_back(inst->xfm);
       groups.push_back(objects[inst->object]);
     }
-    DPRWorld world = dprCreateWorldDP(context,
+    DPRTModel model = dprtCreateModel(context,
                                       groups.data(),
-                                      (DPRAffine*)xfms.data(),
+                                      (DPRTAffine*)xfms.data(),
                                       groups.size());
     CUBQL_CUDA_SYNC_CHECK();
-    return world;
+    return model;
   }
 
 
   __global__
   void g_shadeRays(vec4f *d_pixels,
-                   DPRRay *d_rays,
-                   DPRHit *d_hits,
+                   DPRTRay *d_rays,
+                   DPRTHit *d_hits,
                    vec2i fbSize)
   {
     int ix = threadIdx.x+blockIdx.x*blockDim.x;
@@ -114,7 +115,7 @@ namespace miniapp {
     if (iy >= fbSize.y) return;
 
     //Ray ray = (const Ray &)d_rays[ix+iy*fbSize.x];
-    DPRHit hit = d_hits[ix+iy*fbSize.x];
+    DPRTHit hit = d_hits[ix+iy*fbSize.x];
     vec3f color = randomColor(hit.primID + 0x290374*hit.geomUserData);
     vec4f pixel = {color.x,color.y,color.z,1.f};
     int tid = ix+iy*fbSize.x;
@@ -122,11 +123,11 @@ namespace miniapp {
   }
   
   __global__
-  void g_generateRays(DPRRay *d_rays,
+  void g_generateRays(DPRTRay *d_rays,
                       vec2i fbSize,
                       const Camera camera)
   {
-    static_assert(sizeof(DPRRay) == sizeof(Ray));
+    static_assert(sizeof(DPRTRay) == sizeof(Ray));
     
     int ix = threadIdx.x+blockIdx.x*blockDim.x;
     int iy = threadIdx.y+blockIdx.y*blockDim.y;
@@ -164,9 +165,9 @@ namespace miniapp {
       if (arg[0] != '-') {
         inFileName = arg;
       } else if (arg == "-bc" || arg == "--backface-culling") {
-        flags |= DPR_CULL_BACK;
+        flags |= DPRT_CULL_BACK;
       } else if (arg == "-fc" || arg == "--frontface-culling") {
-        flags |= DPR_CULL_FRONT;
+        flags |= DPRT_CULL_FRONT;
       } else if (arg == "-or" || arg == "--output-res") {
         fbSize.x = std::stoi(av[++i]);
         fbSize.y = std::stoi(av[++i]);
@@ -190,24 +191,24 @@ namespace miniapp {
     vec2i bs(16,16);
     vec2i nb = divRoundUp(fbSize,bs);
     
-    std::cout << "#dpm: creating dpr context" << std::endl;
-    DPRContext dpr = dprContextCreate(DPR_CONTEXT_GPU,0);
-    std::cout << "#dpm: creating world" << std::endl;
-    DPRWorld world = createWorld(dpr,scene);
+    std::cout << "#dpm: creating dprt context" << std::endl;
+    DPRTContext dprt = dprtContextCreate(DPRT_CONTEXT_GPU,0);
+    std::cout << "#dpm: creating model" << std::endl;
+    DPRTModel model = createModel(dprt,scene);
 
     CUBQL_CUDA_SYNC_CHECK();
-    DPRRay *d_rays = 0;
-    cudaMalloc((void **)&d_rays,fbSize.x*fbSize.y*sizeof(DPRRay));
+    DPRTRay *d_rays = 0;
+    cudaMalloc((void **)&d_rays,fbSize.x*fbSize.y*sizeof(DPRTRay));
     CUBQL_CUDA_SYNC_CHECK();
     g_generateRays<<<nb,bs>>>(d_rays,fbSize,camera);
     CUBQL_CUDA_SYNC_CHECK();
       
-    DPRHit *d_hits = 0;
-    cudaMalloc((void **)&d_hits,fbSize.x*fbSize.y*sizeof(DPRHit));
+    DPRTHit *d_hits = 0;
+    cudaMalloc((void **)&d_hits,fbSize.x*fbSize.y*sizeof(DPRTHit));
 
     CUBQL_CUDA_SYNC_CHECK();
     std::cout << "#dpm: calling trace" << std::endl;
-    dprTrace(world,d_rays,d_hits,fbSize.x*fbSize.y,flags);
+    dprtTrace(model,d_rays,d_hits,fbSize.x*fbSize.y,flags);
 
     std::cout << "#dpm: shading rays" << std::endl;
     vec4f *m_pixels = 0;

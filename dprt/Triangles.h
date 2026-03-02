@@ -1,12 +1,13 @@
-// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA
+// CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
 
-#include "dp/common.h"
-#include "dp/Group.h"
+#include "dprt/common.h"
+#include "dprt/Group.h"
 
-namespace dp {
+namespace dprt {
 
   struct Context;
 
@@ -47,7 +48,7 @@ namespace dp {
        data, it's the job of the derived class(es) to sture data as,
        if, and where required*/
   };
-
-} // ::dp
+  
+} // ::dprt
 
 

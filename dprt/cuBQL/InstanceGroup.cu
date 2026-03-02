@@ -2,13 +2,13 @@
 // CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-#include "dp/cuBQL/InstanceGroup.h"
-#include "dp/cuBQL/Triangles.h"
+#include "dprt/cuBQL/InstanceGroup.h"
+#include "dprt/cuBQL/Triangles.h"
 
-namespace dp {
+namespace dprt {
   namespace cubql_cuda {
 
-    __dp_global
+    __dprt_global
     void g_prepareInstances(Kernel kernel,
                             int numInstances,
                             InstanceGroup::InstancedObjectDD *instances,
@@ -44,16 +44,17 @@ namespace dp {
       d_instBounds[tid] = instBounds;
     }
     
-    InstanceGroup::InstanceGroup(Context *context,
-                                 const std::vector<dp::TrianglesGroup *> &groups,
-                                 const affine3d *transforms)
-      : dp::InstanceGroup(context,groups,
-                          (const DPRAffine *)transforms),
+    InstanceGroup::
+    InstanceGroup(Context *context,
+                  const std::vector<dprt::TrianglesGroup *> &groups,
+                  const affine3d *transforms)
+      : dprt::InstanceGroup(context,groups,
+                            (const DPRTAffine *)transforms),
         numInstances((int)groups.size())
     {
       if (groups.size() == 1 && !transforms)
         doesNotActuallyUseInstancing = true;
-#if DP_OMP
+#if DPRT_OMP
 #else
       CUBQL_CUDA_SYNC_CHECK();
 #endif
@@ -66,7 +67,7 @@ namespace dp {
         instanceDDs.push_back(instance);
       }
 
-#if DP_OMP
+#if DPRT_OMP
       d_instanceDDs = (InstancedObjectDD*)
         omp_target_alloc(numInstances*sizeof(*d_instanceDDs),
                          context->gpuID);
@@ -138,7 +139,7 @@ namespace dp {
 
       ::cuBQL::BuildConfig buildConfig;
       buildConfig.maxAllowedLeafSize = 1;
-#if DP_OMP
+#if DPRT_OMP
       std::vector<box3d> h_instBounds(numInstances);
       omp_target_memcpy(h_instBounds.data(),
                         d_instBounds,
@@ -185,7 +186,7 @@ namespace dp {
 
     InstanceGroup::~InstanceGroup()
     {
-#if DP_OMP
+#if DPRT_OMP
       omp_target_free(d_instanceDDs,context->gpuID);
       omp_target_free(d_objectToWorldXfms,context->gpuID);
       omp_target_free(d_worldToObjectXfms,context->gpuID);
@@ -201,13 +202,13 @@ namespace dp {
       return { d_instanceDDs, d_worldToObjectXfms, bvh };
     }
 
-    __dp_global
+    __dprt_global
     void g_traceRays_twoLevel(Kernel kernel,
                               /*! the device data for the instancegroup itself */
                               InstanceGroup::DD world,
-                              DPRRay *rays,
-                              DPRHit *hits,
-                              int numRays,
+                              DPRTRay *rays,
+                              DPRTHit *hits,
+                              size_t numRays,
                               uint64_t flags)
     {
       int tid = kernel.workIdx();//threadIdx.x+blockIdx.x*blockDim.x;
@@ -219,7 +220,7 @@ namespace dp {
       bool dbg = false;//(tid == 512*1024+512);
 #endif
 
-      DPRHit hit = hits[tid];
+      DPRTHit hit = hits[tid];
       hit.primID = -1;
       hit.instID = -1;
       hit.t = 1e30;
@@ -244,9 +245,9 @@ namespace dp {
 
         auto getNormal = [tri]() { return cross(tri.b-tri.a,tri.c-tri.a); };
         bool culled = false;
-        if (flags & DPR_CULL_FRONT)
+        if (flags & DPRT_CULL_FRONT)
           culled |= (dot(getNormal(),objectSpace.ray.direction) <= 0.);
-        if (flags & DPR_CULL_BACK)
+        if (flags & DPRT_CULL_BACK)
           culled |= (dot(getNormal(),objectSpace.ray.direction) >= 0.);
         if (!culled && isec.compute(objectSpace.ray,tri)) {
           hit.primID = prim.primID;
@@ -288,12 +289,12 @@ namespace dp {
     }
 
     
-    __dp_global
+    __dprt_global
     void g_traceRays_noInstances(Kernel kernel,
                                  /*! the device data for the instancegroup itself */
                                  InstanceGroup::DD world,
-                                 DPRRay *rays,
-                                 DPRHit *hits,
+                                 DPRTRay *rays,
+                                 DPRTHit *hits,
                                  int numRays,
                                  uint64_t flags)
     {
@@ -306,7 +307,7 @@ namespace dp {
       bool dbg = false;//(tid == 512*1024+512);
 #endif
 
-      DPRHit hit = hits[tid];
+      DPRTHit hit = hits[tid];
       hit.primID = -1;
       hit.instID = -1;
       hit.t = 1e30;
@@ -329,9 +330,9 @@ namespace dp {
 
         auto getNormal = [tri]() { return cross(tri.b-tri.a,tri.c-tri.a); };
         bool culled = false;
-        if (flags & DPR_CULL_FRONT)
+        if (flags & DPRT_CULL_FRONT)
           culled |= (dot(getNormal(),worldRay.direction) <= 0.);
-        if (flags & DPR_CULL_BACK)
+        if (flags & DPRT_CULL_BACK)
           culled |= (dot(getNormal(),worldRay.direction) >= 0.);
         if (!culled && isec.compute(worldRay,tri)) {
           hit.primID = prim.primID;
@@ -353,13 +354,13 @@ namespace dp {
     
 
 
-    void InstanceGroup::traceRays(DPRRay *d_rays,
-                                  DPRHit *d_hits,
+    void InstanceGroup::traceRays(DPRTRay *d_rays,
+                                  DPRTHit *d_hits,
                                   int numRays,
                                   uint64_t flags)
     {
       if (doesNotActuallyUseInstancing) {
-#if DP_OMP
+#if DPRT_OMP
 # pragma omp target device(context->gpuID)
 # pragma omp teams distribute parallel for
         for (int i=0;i<numRays;i++)
@@ -377,7 +378,7 @@ namespace dp {
         cudaDeviceSynchronize();
 #endif
       } else {
-#if DP_OMP
+#if DPRT_OMP
 # pragma omp target device(context->gpuID)
 # pragma omp teams distribute parallel for
         for (int i=0;i<numRays;i++)

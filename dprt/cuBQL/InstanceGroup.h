@@ -4,17 +4,17 @@
 
 #pragma once
 
-#include "dp/cuBQL/CuBQLBackend.h"
-#include "dp/cuBQL/Triangles.h"
-#include "dp/World.h"
+#include "dprt/cuBQL/CuBQLBackend.h"
+#include "dprt/cuBQL/Triangles.h"
+#include "dprt/Instances.h"
 
-namespace dp {
+namespace dprt {
   namespace cubql_cuda {
 
     /*! a single triangle mesh; can be created over pointes that are
         either on host or device, but which definitively stores
         vertices on the device */
-    struct InstanceGroup : public dp::InstanceGroup {
+    struct InstanceGroup : public dprt::InstanceGroup {
       struct InstancedObjectDD {
         TrianglesGroup::DD group;
         bool hasXfm;
@@ -26,14 +26,14 @@ namespace dp {
       };
 
       InstanceGroup(Context *context,
-                    const std::vector<dp::TrianglesGroup *> &groups,
+                    const std::vector<dprt::TrianglesGroup *> &groups,
                     const affine3d *transforms);
       ~InstanceGroup() override;
       
       DD getDD() const;
 
-      void traceRays(DPRRay *d_rays,
-                     DPRHit *d_hits,
+      void traceRays(DPRTRay *d_rays,
+                     DPRTHit *d_hits,
                      int numRays,
                      uint64_t flags) override;
 
@@ -49,4 +49,4 @@ namespace dp {
     };
     
   }
-}
+} // ::dprt

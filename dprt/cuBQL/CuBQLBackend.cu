@@ -1,14 +1,15 @@
-// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA
+// CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 #define CUBQL_GPU_BUILDER_IMPLEMENTATION 1
 #define CUBQL_CPU_BUILDER_IMPLEMENTATION 1
 
-#include "dp/cuBQL/CuBQLBackend.h"
-#include "dp/cuBQL/Triangles.h"
-#include "dp/cuBQL/InstanceGroup.h"
+#include "dprt/cuBQL/CuBQLBackend.h"
+#include "dprt/cuBQL/Triangles.h"
+#include "dprt/cuBQL/InstanceGroup.h"
 
-#ifdef DP_OMP
+#ifdef DPRT_OMP
 # include "cuBQL/builder/omp.h"
 // do NOT instantiate cuda builder
 namespace cuBQL {
@@ -53,7 +54,7 @@ namespace cuBQL {
 }
 #endif
 
-namespace dp {
+namespace dprt {
   namespace cubql_cuda {
     CuBQLCUDABackend::CuBQLCUDABackend(int gpuID)
       : Context(gpuID)
@@ -63,15 +64,15 @@ namespace dp {
     }
 
 
-    dp::InstanceGroup *
+    dprt::InstanceGroup *
     CuBQLCUDABackend::
-    createInstanceGroup(const std::vector<dp::TrianglesGroup *> &groups,
-                        const DPRAffine *transforms)
+    createInstanceGroup(const std::vector<dprt::TrianglesGroup *> &groups,
+                        const DPRTAffine *transforms)
     {
       return new InstanceGroup(this, groups,(const affine3d*)transforms);
     }
     
-    dp::TriangleMesh *
+    dprt::TriangleMesh *
     CuBQLCUDABackend::
     createTriangleMesh(uint64_t         userData,
                        const vec3d     *vertexArray,
@@ -87,14 +88,14 @@ namespace dp {
                               indexCount);
     }
     
-    dp::TrianglesGroup *
+    dprt::TrianglesGroup *
     CuBQLCUDABackend::
-    createTrianglesGroup(const std::vector<dp::TriangleMesh *> &geoms)
+    createTrianglesGroup(const std::vector<dprt::TriangleMesh *> &geoms)
     {
       return new TrianglesGroup(this,geoms);
     }
-  } // :: cubql_cuda
-  
-}
+    
+  } // ::cubql_cuda
+} // ::drpt
 
   
