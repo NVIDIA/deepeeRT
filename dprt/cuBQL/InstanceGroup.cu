@@ -172,9 +172,6 @@ namespace dprt {
       omp_target_free(d_instBounds,context->gpuID);
 #else
       DeviceMemoryResource memResource;
-      std::cout << "==================================================================" << std::endl;
-      PING;
-      std::cout << "TOP" << std::endl;
       ::cuBQL::cuda::sahBuilder(bvh,
                                 d_instBounds,
                                 numInstances,
@@ -183,7 +180,6 @@ namespace dprt {
                                 memResource);
       
       CUBQL_CUDA_SYNC_CHECK();
-      PING;
       cudaFree(d_instBounds);
 #endif
     }
