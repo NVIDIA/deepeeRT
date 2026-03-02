@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "deepeeRT/deepeeRT.h"
+#include "dprt/dprt.h"
 #include "cuBQL/math/box.h"
 #include "cuBQL/math/linear.h"
 #include "cuBQL/math/affine.h"

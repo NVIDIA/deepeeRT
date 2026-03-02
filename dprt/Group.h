@@ -1,11 +1,12 @@
-// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA
+// CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
 
-#include "dp/common.h"
+#include "dprt/common.h"
 
-namespace dp {
+namespace dprt {
 
   struct Context;
 
@@ -21,5 +22,9 @@ namespace dp {
     Context *const context;
   };
 
-} // ::dp
+  inline Group::Group(Context *const context)
+    : context(context)
+  {}
+  
+} // ::dprt
 

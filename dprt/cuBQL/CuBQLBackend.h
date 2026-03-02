@@ -1,10 +1,11 @@
-// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA
+// CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
 
-#include "dp/Context.h"
-#if DP_OMP
+#include "dprt/Context.h"
+#if DPRT_OMP
 # include <omp.h>
 #endif
 #include <cuBQL/bvh.h>
@@ -16,7 +17,7 @@
 #include <cuBQL/queries/triangleData/math/rayTriangleIntersections.h>
 #include <cuBQL/traversal/rayQueries.h>
 
-namespace dp {
+namespace dprt {
   namespace cubql_cuda {
     
     using namespace ::cuBQL;
@@ -26,14 +27,14 @@ namespace dp {
     using RayTriangleIntersection = cuBQL::RayTriangleIntersection_t<double>;
     using cuBQL::affine3d;
 
-#if DP_OMP
-# define __dp_global /* nothing */
+#if DPRT_OMP
+# define __dprt_global /* nothing */
     struct Kernel {
       int threadIdx;
       inline int workIdx() const { return threadIdx; }
     };
 #elif defined (__CUDACC__)
-# define __dp_global __global__
+# define __dprt_global __global__
     struct Kernel {
       inline __device__
       int workIdx() const { return threadIdx.x+blockIdx.x*blockDim.x; }
@@ -60,24 +61,24 @@ namespace dp {
       Context *context = 0;
     };
   
-    struct CuBQLCUDABackend : public dp::Context
+    struct CuBQLCUDABackend : public dprt::Context
     {
       CuBQLCUDABackend(int gpuID);
       virtual ~CuBQLCUDABackend() = default;
 
-      dp::InstanceGroup *
-      createInstanceGroup(const std::vector<dp::TrianglesGroup *> &groups,
-                          const DPRAffine *transforms) override;
+      dprt::InstanceGroup *
+      createInstanceGroup(const std::vector<dprt::TrianglesGroup *> &groups,
+                          const DPRTAffine *transforms) override;
     
-      dp::TriangleMesh *
+      dprt::TriangleMesh *
       createTriangleMesh(uint64_t         userData,
                          const vec3d     *vertexArray,
                          int              vertexCount,
                          const vec3i     *indexArray,
                          int              indexCount) override;
       
-      dp::TrianglesGroup *
-      createTrianglesGroup(const std::vector<dp::TriangleMesh *> &geoms) override;
+      dprt::TrianglesGroup *
+      createTrianglesGroup(const std::vector<dprt::TriangleMesh *> &geoms) override;
     };
 
     // ==================================================================
@@ -96,7 +97,7 @@ namespace dp {
     }
 
 
-#ifdef DP_OMP
+#ifdef DPRT_OMP
     template<typename T> inline
     AutoUploadArray<T>::AutoUploadArray(Context *context,
                                         const T *elements,
@@ -146,7 +147,7 @@ namespace dp {
 #endif
     
   }
-}
+} // ::dprt
 
 
   

@@ -1,13 +1,14 @@
-// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA
+// CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-#include "dp/cuBQL/Triangles.h"
+#include "dprt/cuBQL/Triangles.h"
 
-namespace dp {
+namespace dprt {
   namespace cubql_cuda {
 
     /*! triangle mesh representation on the device */
-    __dp_global
+    __dprt_global
     void generateTriangleInputs(Kernel   kernel,
                                 int      meshID,
                                 PrimRef *primRefs,
@@ -15,7 +16,7 @@ namespace dp {
                                 int      numTrisThisMesh,
                                 TriangleMesh::DD mesh)
     {
-      int tid = kernel.workIdx();//threadIdx.x+blockIdx.x*blockDim.x;
+      int tid = kernel.workIdx();
       if (tid >= numTrisThisMesh) return;
 
       vec3i idx = mesh.indices[tid];
@@ -34,7 +35,7 @@ namespace dp {
                                int              vertexCount,
                                const vec3i     *indexArray,
                                int              indexCount)
-      : dp::TriangleMesh(context,userData,
+      : dprt::TriangleMesh(context,userData,
                          vertexArray,vertexCount,
                          indexArray,indexCount),
         vertices(context,vertexArray,vertexCount),
@@ -42,8 +43,8 @@ namespace dp {
     {}
     
     TrianglesGroup::TrianglesGroup(Context *context,
-                                   const std::vector<dp::TriangleMesh *> &meshes)
-      : dp::TrianglesGroup(context,meshes)
+                                   const std::vector<dprt::TriangleMesh *> &meshes)
+      : dprt::TrianglesGroup(context,meshes)
     {
 #ifndef DP_OMP
       CUBQL_CUDA_SYNC_CHECK();

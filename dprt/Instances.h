@@ -4,9 +4,9 @@
 
 #pragma once
 
-#include "dp/Group.h"
+#include "dprt/Group.h"
 
-namespace dp {
+namespace dprt {
 
   struct Context;
   struct TrianglesGroup;
@@ -16,13 +16,13 @@ namespace dp {
   struct InstanceGroup : public Group {
     InstanceGroup(Context *context,
                   const std::vector<TrianglesGroup *> &groups,
-                  const DPRAffine            *transforms)
+                  const DPRTAffine            *transforms)
       : Group(context)
     {}
 
     /*! implements dprTrace() */
-    virtual void traceRays(DPRRay *d_rays,
-                           DPRHit *d_hits,
+    virtual void traceRays(DPRTRay *d_rays,
+                           DPRTHit *d_hits,
                            int numRays,
                            uint64_t flags) = 0;
 
@@ -31,5 +31,5 @@ namespace dp {
        if, and where required*/
   };
     
-} // ::dp
+} // ::dprt
 

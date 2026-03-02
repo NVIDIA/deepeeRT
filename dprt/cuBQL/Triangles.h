@@ -1,15 +1,19 @@
+// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA
+// CORPORATION & AFFILIATES. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 #pragma once
 
-#include "dp/cuBQL/CuBQLBackend.h"
-#include "dp/Triangles.h"
+#include "dprt/cuBQL/CuBQLBackend.h"
+#include "dprt/Triangles.h"
 
-namespace dp {
+namespace dprt {
   namespace cubql_cuda {
 
     /*! a single triangle mesh; can be created over pointes that are
         either on host or device, but which definitively stores
         vertices on the device */
-    struct TriangleMesh : public dp::TriangleMesh {
+    struct TriangleMesh : public dprt::TriangleMesh {
       struct DD {
         inline __cubql_both TriangleDP getTriangle(uint32_t primID) const;
         
@@ -34,7 +38,7 @@ namespace dp {
 
     
     /*! a group/acceleration structure over one or more triangle meshes */
-    struct TrianglesGroup : public dp::TrianglesGroup {
+    struct TrianglesGroup : public dprt::TrianglesGroup {
       /*! device data for a cubql group over one or more triangle
           meshes */
       struct DD {
@@ -48,7 +52,7 @@ namespace dp {
       };
       
       TrianglesGroup(Context *context,
-                     const std::vector<dp::TriangleMesh *> &geoms);
+                     const std::vector<dprt::TriangleMesh *> &geoms);
       ~TrianglesGroup() override;
 
 
@@ -86,4 +90,4 @@ namespace dp {
     }
     
   }
-}
+} // ::dprt
