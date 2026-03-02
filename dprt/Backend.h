@@ -16,10 +16,10 @@ namespace dprt {
       deepee.h. ALSO: current backends will assume this to match cuBQL
       ray struct, whcih - UNLIKE OPTIX - has tmin/tmax at end. !*/
   struct Ray {
-    vec3d origin;
-    vec3d direction;
-    double  tMin;
-    double  tMax;
+    vec3d  origin;
+    vec3d  direction;
+    double tMin;
+    double tMax;
   };
 
   /*! Internal representation of a hit in the hit queue to be traced

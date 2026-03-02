@@ -217,7 +217,8 @@ namespace dprt {
 #ifdef NDEBUG
       const bool dbg = false;
 #else
-      bool dbg = false;//(tid == 512*1024+512);
+      // bool dbg = (tid == 512*1024+512);
+      bool dbg = false;
 #endif
 
       DPRTHit hit = hits[tid];
