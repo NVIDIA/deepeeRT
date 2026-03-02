@@ -13,11 +13,12 @@ namespace dprt {
   
   /*! Internal representation of a ray in the input ray
       queue. CAREFUL: this HAS to match the data layout of DPRRay in
-      deepee.h !*/
+      deepee.h. ALSO: current backends will assume this to match cuBQL
+      ray struct, whcih - UNLIKE OPTIX - has tmin/tmax at end. !*/
   struct Ray {
     vec3d origin;
-    double  tMin;
     vec3d direction;
+    double  tMin;
     double  tMax;
   };
 

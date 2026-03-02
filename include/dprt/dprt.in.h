@@ -105,8 +105,8 @@ struct DPRTAffine {
   
 struct DPRTRay {
   DPRTvec3 origin;
-  double   tMin;
   DPRTvec3 direction;
+  double   tMin;
   double   tMax;
 };
 
