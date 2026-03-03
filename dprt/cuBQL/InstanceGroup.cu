@@ -97,15 +97,15 @@ namespace dprt {
             tmp[i] = impl_scalar_t(((double *)transforms)[i]);
           omp_target_memcpy(d_objectToWorldXfms,
                             (impl_affine_t*)tmp.data(),
-                            numInstances*sizeof(affine3d),
+                            numInstances*sizeof(impl_affine_t),
                             0,0,
                             context->gpuID,
                             context->hostID);
         }
       }
-      box3d *d_instBounds = 0;
+      impl_box_t *d_instBounds = 0;
       cudaMalloc((void**)&d_instBounds,
-                 numInstances*sizeof(box3d));
+                 numInstances*sizeof(impl_box_t));
 # pragma omp target device(context->gpuID)
 # pragma omp teams distribute parallel for
       for (int i=0;i<numInstances;i++)
