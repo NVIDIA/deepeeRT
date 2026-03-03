@@ -21,12 +21,26 @@ namespace dprt {
   namespace cubql_cuda {
     
     using namespace ::cuBQL;
-    
+
     using bvh3d = bvh_t<double,3>;
     using TriangleDP = cuBQL::triangle_t<double>;
-    using RayTriangleIntersection = cuBQL::RayTriangleIntersection_t<double>;
     using cuBQL::affine3d;
 
+#ifdef DPRT_EXP_SP
+    using impl_scalar_t = float;
+    using impl_affine_t = cuBQL::affine3f;
+#else
+    using impl_scalar_t = double;
+    using impl_affine_t = cuBQL::affine3d;
+#endif
+    using impl_vec_t = cuBQL::vec_t<impl_scalar_t,3>;
+    using impl_box_t = cuBQL::box_t<impl_scalar_t,3>;
+    using impl_bvh_t = bvh_t<impl_scalar_t,3>;
+    using impl_triangle_t = cuBQL::triangle_t<impl_scalar_t>;
+    using impl_ray_t = ::cuBQL::ray_t<impl_scalar_t>;
+
+    using RayTriangleIntersection = cuBQL::RayTriangleIntersection_t<impl_scalar_t>;
+    
 #if DPRT_OMP
 # define __dprt_global /* nothing */
     struct Kernel {
@@ -45,11 +59,11 @@ namespace dprt {
     /*! an array that can upload an array from host to device, and free
       on destruction. If the pointer provided is *already* a device
       pointer this will just use that pointer */
-    template<typename T>
+    template<typename T, typename INPUT_T>
     struct AutoUploadArray {
       // AutoUploadArray() = default;
       AutoUploadArray(Context *context,
-                      const T *elements, size_t count);
+                      const INPUT_T *elements, size_t count);
       AutoUploadArray(const AutoUploadArray &other) = delete;
       ~AutoUploadArray();
 
@@ -85,9 +99,10 @@ namespace dprt {
     // INLINE IMPLEMENTATION SECTION
     // ==================================================================
 
-    template<typename T> inline
-    AutoUploadArray<T> &
-    AutoUploadArray<T>::operator=(AutoUploadArray &&other)
+    template<typename T, typename INPUT_T>
+    inline
+    AutoUploadArray<T,INPUT_T> &
+    AutoUploadArray<T,INPUT_T>::operator=(AutoUploadArray &&other)
     {
       context = other->context;
       elements = other.elements; other.elements = 0;
@@ -98,35 +113,46 @@ namespace dprt {
 
 
 #ifdef DPRT_OMP
-    template<typename T> inline
-    AutoUploadArray<T>::AutoUploadArray(Context *context,
-                                        const T *elements,
+    template<typename T, typename INPUT_T> inline
+    AutoUploadArray<T,INPUT_T>::AutoUploadArray(Context *context,
+                                        const INPUT_T *elements,
                                         size_t count)
       : context(context)
     {
       this->count = count;
       this->elements = (T*)omp_target_alloc(count*sizeof(T),
                                             context->gpuID);
-      omp_target_memcpy((void*)this->elements,(void*)elements,
-                        count*sizeof(T),
-                        0,0,
-                        context->gpuID,
-                        context->hostID);
+      if (std::is_same<T,INPUT_T>) {
+        omp_target_memcpy((void*)this->elements,(void*)elements,
+                          count*sizeof(T),
+                          0,0,
+                          context->gpuID,
+                          context->hostID);
+      } else {
+        std::vector<T> tmp(count);
+        for (int i=0;i<count;i++)
+          tmp[i] = T(elements[i]);
+        omp_target_memcpy((void*)this->elements,(void*)tmp.data(),
+                          count*sizeof(T),
+                          0,0,
+                          context->gpuID,
+                          context->hostID);
+      }
       this->needsCudaFree = true;
     }
 
-    template<typename T> inline
-    AutoUploadArray<T>::~AutoUploadArray() {
+    template<typename T, typename INPUT_T> inline
+    AutoUploadArray<T,INPUT_T>::~AutoUploadArray() {
       if (needsCudaFree)
         omp_target_free((void*)elements,context->gpuID);
     }
 #endif
 
 #ifdef __CUDACC__
-    template<typename T> inline
-    AutoUploadArray<T>::AutoUploadArray(Context *context,
-                                        const T *elements,
-                                        size_t count)
+    template<typename T, typename INPUT_T> inline
+    AutoUploadArray<T,INPUT_T>::AutoUploadArray(Context *context,
+                                                const INPUT_T *elements,
+                                                size_t count)
       : context(context)
     {
       this->count = count;
@@ -138,8 +164,8 @@ namespace dprt {
       this->needsCudaFree = true;
     }
 
-    template<typename T> inline
-    AutoUploadArray<T>::~AutoUploadArray() {
+    template<typename T, typename INPUT_T> inline
+    AutoUploadArray<T,INPUT_T>::~AutoUploadArray() {
       if (needsCudaFree)
         cudaFree((void*)elements);
       CUBQL_CUDA_SYNC_CHECK();

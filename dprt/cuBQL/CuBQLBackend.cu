@@ -13,41 +13,43 @@
 # include "cuBQL/builder/omp.h"
 // do NOT instantiate cuda builder
 namespace cuBQL {
+  using impl_scalar_t = dprt::cubql_cuda::impl_scalar_t;
   namespace omp {
     template
-    void spatialMedian(BinaryBVH<double,3>   &bvh,
-                       const box_t<double,3> *boxes,
+    void spatialMedian(BinaryBVH<impl_scalar_t,3>   &bvh,
+                       const box_t<impl_scalar_t,3> *boxes,
                        uint32_t          numPrims,
                        BuildConfig       buildConfig,
                        Context          *ctx);
     template
-    void freeBVH(BinaryBVH<double,3> &bvh,
+    void freeBVH(BinaryBVH<impl_scalar_t,3> &bvh,
                  Context          *ctx);
   }
 }
 #else
 namespace cuBQL {
+  using impl_scalar_t = dprt::cubql_cuda::impl_scalar_t;
   namespace cpu {
     template
-    void spatialMedian(BinaryBVH<double,3>   &bvh,
-                       const box_t<double,3> *boxes,
+    void spatialMedian(BinaryBVH<impl_scalar_t,3>   &bvh,
+                       const box_t<impl_scalar_t,3> *boxes,
                        uint32_t          numPrims,
                        BuildConfig       buildConfig);
     template
-    void freeBVH(BinaryBVH<double,3> &bvh);
+    void freeBVH(BinaryBVH<impl_scalar_t,3> &bvh);
 
   }
   namespace cuda {
     template
-    void sahBuilder(BinaryBVH<double,3>   &bvh,
-                    const box_t<double,3> *boxes,
+    void sahBuilder(BinaryBVH<impl_scalar_t,3>   &bvh,
+                    const box_t<impl_scalar_t,3> *boxes,
                     uint32_t          numPrims,
                     BuildConfig       buildConfig,
                     cudaStream_t       s,
                     cuBQL::GpuMemoryResource &memResource);
 
     template
-    void free(BinaryBVH<double,3> &bvh,
+    void free(BinaryBVH<impl_scalar_t,3> &bvh,
               cudaStream_t      s,
               GpuMemoryResource& memResource);
   }
@@ -56,6 +58,7 @@ namespace cuBQL {
 
 namespace dprt {
   namespace cubql_cuda {
+    
     CuBQLCUDABackend::CuBQLCUDABackend(int gpuID)
       : Context(gpuID)
     {
