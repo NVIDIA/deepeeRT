@@ -158,8 +158,16 @@ namespace dprt {
       this->count = count;
       CUBQL_CUDA_SYNC_CHECK();
       cudaMalloc((void **)&this->elements,count*sizeof(T));
-      cudaMemcpy((void*)this->elements,(void*)elements,count*sizeof(T),
-                 cudaMemcpyDefault);
+      if (std::is_same<T,INPUT_T>()) {
+        cudaMemcpy((void*)this->elements,(void*)elements,count*sizeof(T),
+                   cudaMemcpyDefault);
+      } else {
+        std::vector<T> tmp(count);
+        for (int i=0;i<count;i++)
+          tmp[i] = T(elements[i]);
+        cudaMemcpy((void*)this->elements,(void*)tmp.data(),count*sizeof(T),
+                   cudaMemcpyDefault);
+      }
       CUBQL_CUDA_SYNC_CHECK();
       this->needsCudaFree = true;
     }

@@ -27,6 +27,8 @@ namespace dprt {
 
       primRefs[tid] = { meshID, tid };
       primBounds[tid] = bb;
+
+      auto box = bb;
     }
     
     TriangleMesh::TriangleMesh(Context         *context,
