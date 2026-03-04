@@ -1,19 +1,17 @@
+
 # SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA
 # CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
 add_library(dprt_cuBQL OBJECT
-  CuBQLBackend.h
-  CuBQLBackend.cu 
-  Triangles.h
-  Triangles.cu
-  InstanceGroup.h
-  InstanceGroup.cu
+  OWLBackend.h
+  OWLBackend.cpp
 )
 target_link_libraries(dprt_cuBQL
   PUBLIC
   dprt_common
   cuBQL
+  owl::owl
 )
 
 if (DPRT_OMP)

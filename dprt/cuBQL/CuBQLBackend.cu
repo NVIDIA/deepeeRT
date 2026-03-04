@@ -55,6 +55,13 @@ namespace cuBQL {
 #endif
 
 namespace dprt {
+
+  Context *Context::create(int gpuID)
+  {
+    return new cubql_cuda::CuBQLCUDABackend(gpuID);
+  };
+  
+  
   namespace cubql_cuda {
     CuBQLCUDABackend::CuBQLCUDABackend(int gpuID)
       : Context(gpuID)
