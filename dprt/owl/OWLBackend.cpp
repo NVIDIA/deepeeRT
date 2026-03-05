@@ -41,9 +41,18 @@ namespace dprt {
         { "userData", OWL_ULONG,  OWL_OFFSETOF(TriangleMesh::DD,userData) },
         { nullptr },
       };
-      trianglesGT = owlGeomTypeCreate(owl,OWL_GEOM_TRIANGLES,
-                             sizeof(TriangleMesh::DD),
-                             gtVars,-1);
+      trianglesGT = owlGeomTypeCreate(owl,
+#if EXP_DOUBLE_TRITEST
+                                      OWL_GEOM_USER,
+#else
+                                      OWL_GEOM_TRIANGLES,
+#endif
+                                      sizeof(TriangleMesh::DD),
+                                      gtVars,-1);
+#if EXP_DOUBLE_TRITEST
+      owlGeomTypeSetBoundsProg(trianglesGT,module,"TriMesh");
+      owlGeomTypeSetIntersectProg(trianglesGT,0,module,"TriMesh");
+#endif
       owlGeomTypeSetClosestHit(trianglesGT,0,module,"TriMesh");
       
       owlBuildPrograms(owl);
@@ -77,10 +86,15 @@ namespace dprt {
         = owlDeviceBufferCreate(be->owl,OWL_INT3,
                                 indexCount,indexArray);
       geom = owlGeomCreate(be->owl,be->trianglesGT);
+#if EXP_DOUBLE_TRITEST
+      owlGeomSetPrimCount(geom,indexCount);
+
+#else
       owlTrianglesSetVertices(geom,vertexBuffer,
                               vertexCount,sizeof(vec3f),0);
       owlTrianglesSetIndices(geom,indexBuffer,
                               indexCount,sizeof(vec3i),0);
+#endif
       owlGeomSet1ul(geom,"userData",userData);
       owlGeomSetBuffer(geom,"vertices",vertexBuffer);
       owlGeomSetBuffer(geom,"indices",indexBuffer);
@@ -94,8 +108,13 @@ namespace dprt {
       std::vector<OWLGeom> geoms;
       for (auto g : _geoms)
         geoms.push_back(((TriangleMesh*)g)->geom);
+#if EXP_DOUBLE_TRITEST
+      group = owlUserGeomGroupCreate(be->owl,
+                                     geoms.size(),geoms.data());
+#else
       group = owlTrianglesGeomGroupCreate(be->owl,
                                           geoms.size(),geoms.data());
+#endif
       owlGroupBuildAccel(group);
     }
     

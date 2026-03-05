@@ -3,10 +3,14 @@
 # CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-option(EXP_DOUBLE_DISTANCE "Experimental owl-plus-double-distance test" ON)
+option(EXP_DOUBLE_DISTANCE "Experimental owl-plus-double-distance test" OFF)
+option(EXP_DOUBLE_TRITEST "Experimental owl-plus-double-distance test" ON)
 
 if (EXP_DOUBLE_DISTANCE)
   target_compile_definitions(dprt_common INTERFACE -DEXP_DOUBLE_DISTANCE=1)
+endif()
+if (EXP_DOUBLE_TRITEST)
+  target_compile_definitions(dprt_common INTERFACE -DEXP_DOUBLE_TRITEST=1)
 endif()
 
 embed_ptx(
