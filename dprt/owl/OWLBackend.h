@@ -33,12 +33,15 @@ namespace dprt {
       DPRTRay *rays;
       DPRTHit *hits;
       uint64_t flags;
+      OptixTraversableHandle model;
       int numRays;
     };
     
     struct TriangleMesh : public dprt::TriangleMesh {
       struct DD {
         uint64_t userData;
+        vec3f   *vertices;
+        vec3i   *indices;
       };
       
       TriangleMesh(OWLBackend *be,

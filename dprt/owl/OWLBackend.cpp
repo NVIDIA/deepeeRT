@@ -22,9 +22,10 @@ namespace dprt {
       };
       rg = owlRayGenCreate(owl,module,"raygen",
                            0,
-                           rgVars,0);
+                           rgVars,-1);
 
       OWLVarDecl lpVars[] = {
+        { "model", OWL_GROUP, OWL_OFFSETOF(LaunchParams,model) },
         { "rays", OWL_ULONG, OWL_OFFSETOF(LaunchParams,rays) },
         { "hits", OWL_ULONG, OWL_OFFSETOF(LaunchParams,hits) },
         { "flags", OWL_ULONG, OWL_OFFSETOF(LaunchParams,flags) },
@@ -32,16 +33,18 @@ namespace dprt {
         { nullptr },
       };
       lp = owlParamsCreate(owl,sizeof(LaunchParams),
-                           lpVars,0);
+                           lpVars,-1);
       
       OWLVarDecl gtVars[] = {
-        { "userData", OWL_ULONG, OWL_OFFSETOF(TriangleMesh::DD,userData) },
+        { "vertices", OWL_BUFPTR, OWL_OFFSETOF(TriangleMesh::DD,vertices) },
+        { "indices",  OWL_BUFPTR, OWL_OFFSETOF(TriangleMesh::DD,indices) },
+        { "userData", OWL_ULONG,  OWL_OFFSETOF(TriangleMesh::DD,userData) },
         { nullptr },
       };
       trianglesGT = owlGeomTypeCreate(owl,OWL_GEOM_TRIANGLES,
                              sizeof(TriangleMesh::DD),
-                             gtVars,0);
-      owlGeomTypeSetClosestHit(trianglesGT,0,module,"AH");
+                             gtVars,-1);
+      owlGeomTypeSetClosestHit(trianglesGT,0,module,"TriMesh");
       
       owlBuildPrograms(owl);
       owlBuildPipeline(owl);
@@ -125,6 +128,8 @@ namespace dprt {
 
       owlBuildPipeline(be->owl);
       owlBuildSBT(be->owl);
+      owlBuildPipeline(be->owl);
+      owlBuildSBT(be->owl);
     }
     
     dprt::TriangleMesh *
@@ -165,6 +170,8 @@ namespace dprt {
       owlParamsSet1ul(lp,"flags",flags);
       owlParamsSet1ul(lp,"rays",(uint64_t)d_rays);
       owlParamsSet1ul(lp,"hits",(uint64_t)d_hits);
+      owlParamsSetGroup(lp,"model",group);
+      // owlParamsSetGroup(lp,"model",owlGroupGetTraversable(group,0));
       owlLaunch2D(be->rg,1024,divRoundUp(numRays,1024),lp);
     }
     
