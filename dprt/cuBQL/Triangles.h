@@ -15,10 +15,10 @@ namespace dprt {
         vertices on the device */
     struct TriangleMesh : public dprt::TriangleMesh {
       struct DD {
-        inline __cubql_both TriangleDP getTriangle(uint32_t primID) const;
+        inline __cubql_both impl_triangle_t getTriangle(uint32_t primID) const;
         
-        const vec3d   *vertices;
-        const vec3i   *indices;
+        const impl_vec_t *vertices;
+        const vec3i      *indices;
         uint64_t userData;
       };
 
@@ -32,8 +32,8 @@ namespace dprt {
       DD getDD() const
       { return { vertices.elements, indices.elements, userData }; }
     
-      AutoUploadArray<vec3d> vertices;
-      AutoUploadArray<vec3i> indices;
+      AutoUploadArray<impl_vec_t,vec3d> vertices;
+      AutoUploadArray<vec3i,vec3i> indices;
     };
 
     
@@ -44,11 +44,11 @@ namespace dprt {
       struct DD {
         /*! return the triangle specified by the given primref */
         inline __cubql_both DD() = default;
-        inline __cubql_both TriangleDP getTriangle(PrimRef prim) const;
+        inline __cubql_both impl_triangle_t getTriangle(PrimRef prim) const;
         
         TriangleMesh::DD *meshes;
         PrimRef          *primRefs;
-        bvh3d             bvh;
+        impl_bvh_t        bvh;
       };
       
       TrianglesGroup(Context *context,
@@ -65,16 +65,16 @@ namespace dprt {
         return dd;
       }
       
-      bvh3d             bvh;
+      impl_bvh_t        bvh;
       TriangleMesh::DD *d_meshDDs;
       PrimRef          *d_primRefs;
     };
 
     inline __cubql_both
-    TriangleDP TriangleMesh::DD::getTriangle(uint32_t primID) const
+    impl_triangle_t TriangleMesh::DD::getTriangle(uint32_t primID) const
     {
       vec3i idx = indices[primID];
-      TriangleDP tri;
+      impl_triangle_t tri;
       tri.a = vertices[idx.x];
       tri.b = vertices[idx.y];
       tri.c = vertices[idx.z];
@@ -82,10 +82,10 @@ namespace dprt {
     }
 
     inline __cubql_both
-    TriangleDP TrianglesGroup::DD::getTriangle(PrimRef prim) const
+    impl_triangle_t TrianglesGroup::DD::getTriangle(PrimRef prim) const
     {
       const TriangleMesh::DD &mesh = meshes[prim.geomID];
-      TriangleDP tri = mesh.getTriangle(prim.primID);
+      impl_triangle_t tri = mesh.getTriangle(prim.primID);
       return tri;
     }
     

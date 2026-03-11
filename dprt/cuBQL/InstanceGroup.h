@@ -21,8 +21,8 @@ namespace dprt {
       };
       struct DD {
         const InstancedObjectDD *instancedGroups;
-        const affine3d          *worldToObjectXfms;
-        bvh3d bvh;
+        const impl_affine_t     *worldToObjectXfms;
+        impl_bvh_t bvh;
       };
 
       InstanceGroup(Context *context,
@@ -43,9 +43,9 @@ namespace dprt {
       bool               doesNotActuallyUseInstancing = false;
       int                numInstances = 0;
       InstancedObjectDD *d_instanceDDs = 0;
-      affine3d          *d_worldToObjectXfms = 0;
-      affine3d          *d_objectToWorldXfms = 0;
-      bvh3d bvh;
+      impl_affine_t     *d_worldToObjectXfms = 0;
+      impl_affine_t     *d_objectToWorldXfms = 0;
+      impl_bvh_t bvh;
     };
     
   }

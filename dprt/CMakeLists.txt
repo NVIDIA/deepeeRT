@@ -10,6 +10,8 @@ endif()
 
 add_library(dprt_common INTERFACE)
 
+option(DPRT_EXP_SP "experimental single-precision backend" OFF)
+
 target_include_directories(dprt_common INTERFACE
   $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
   $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>/include
@@ -22,6 +24,10 @@ target_link_libraries(dprt_common INTERFACE
 
 target_compile_definitions(dprt_common INTERFACE
   -Ddprt_STATIC=1)
+if (DPRT_EXP_SP)
+  target_compile_definitions(dprt_common INTERFACE
+    -DDPRT_EXP_SP=1)
+endif()
 
 add_library(dprt STATIC
   ../include/dprt/dprt.h

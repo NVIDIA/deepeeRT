@@ -1,4 +1,5 @@
-// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA
+// CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Mesh.h"
@@ -8,9 +9,9 @@ namespace miniapp {
   /*! this HAS to be the same data layout as DPRRay in deepee.h */
   struct Ray {
     vec3d origin;
-    double  tMax;
     vec3d direction;
     double  tMin;
+    double  tMax;
   };
 
   inline __cubql_both dbgout operator<<(dbgout o, Ray ray)
