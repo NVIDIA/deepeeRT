@@ -13,24 +13,23 @@ namespace dprt {
                             int numInstances,
                             InstanceGroup::InstancedObjectDD *instances,
                             bool hasTransforms,
-                            affine3d *worldToObjectXfms,
-                            affine3d *objectToWorldXfms,
-                            box3d *d_instBounds,
+                            impl_affine_t *worldToObjectXfms,
+                            impl_affine_t *objectToWorldXfms,
+                            impl_box_t *d_instBounds,
                             bool *hasActualTransform,
-                            bool *hasAnyActualTransform
-                            )
+                            bool *hasAnyActualTransform)
     {
       int tid = kernel.workIdx();//threadIdx.x+blockIdx.x*blockDim.x;
       if (tid >= numInstances) return;
-      affine3d xfm;
+      impl_affine_t xfm;
       if (!hasTransforms) {
-        xfm = affine3d();
+        xfm = impl_affine_t();
         objectToWorldXfms[tid] = xfm;
       } else {
         xfm = objectToWorldXfms[tid];
       }
 
-      if (xfm == affine3d()) {
+      if (xfm == impl_affine_t()) {
         hasActualTransform[tid] = false;
         // do NOT set 'hasANY' field - this is pre-initialized t0
         // false and will only ever flagged on by a kernel
@@ -40,20 +39,20 @@ namespace dprt {
       }
       
       worldToObjectXfms[tid] = rcp(xfm);
-      instances[tid].hasXfm = (xfm != affine3d());
+      instances[tid].hasXfm = (xfm != impl_affine_t());
 
-      box3d objBounds = instances[tid].group.bvh.nodes[0].bounds;
-      vec3d b0 = objBounds.lower;
-      vec3d b1 = objBounds.upper;
-      box3d instBounds;
-      instBounds.extend(xfmPoint(xfm,vec3d(b0.x,b0.y,b0.z)));
-      instBounds.extend(xfmPoint(xfm,vec3d(b0.x,b0.y,b1.z)));
-      instBounds.extend(xfmPoint(xfm,vec3d(b0.x,b1.y,b0.z)));
-      instBounds.extend(xfmPoint(xfm,vec3d(b0.x,b1.y,b1.z)));
-      instBounds.extend(xfmPoint(xfm,vec3d(b1.x,b0.y,b0.z)));
-      instBounds.extend(xfmPoint(xfm,vec3d(b1.x,b0.y,b1.z)));
-      instBounds.extend(xfmPoint(xfm,vec3d(b1.x,b1.y,b0.z)));
-      instBounds.extend(xfmPoint(xfm,vec3d(b1.x,b1.y,b1.z)));
+      impl_box_t objBounds = instances[tid].group.bvh.nodes[0].bounds;
+      impl_vec_t b0 = objBounds.lower;
+      impl_vec_t b1 = objBounds.upper;
+      impl_box_t instBounds;
+      instBounds.extend(xfmPoint(xfm,impl_vec_t(b0.x,b0.y,b0.z)));
+      instBounds.extend(xfmPoint(xfm,impl_vec_t(b0.x,b0.y,b1.z)));
+      instBounds.extend(xfmPoint(xfm,impl_vec_t(b0.x,b1.y,b0.z)));
+      instBounds.extend(xfmPoint(xfm,impl_vec_t(b0.x,b1.y,b1.z)));
+      instBounds.extend(xfmPoint(xfm,impl_vec_t(b1.x,b0.y,b0.z)));
+      instBounds.extend(xfmPoint(xfm,impl_vec_t(b1.x,b0.y,b1.z)));
+      instBounds.extend(xfmPoint(xfm,impl_vec_t(b1.x,b1.y,b0.z)));
+      instBounds.extend(xfmPoint(xfm,impl_vec_t(b1.x,b1.y,b1.z)));
       d_instBounds[tid] = instBounds;
     }
     
@@ -89,10 +88,10 @@ namespace dprt {
                         context->gpuID,
                         context->hostID);
       
-      d_worldToObjectXfms  = (affine3d*)
-        omp_target_alloc(numInstances*sizeof(affine3d),context->gpuID);
-      d_objectToWorldXfms  = (affine3d*)
-        omp_target_alloc(numInstances*sizeof(affine3d),context->gpuID);
+      d_worldToObjectXfms  = (impl_affine_t*)
+        omp_target_alloc(numInstances*sizeof(impl_affine_t),context->gpuID);
+      d_objectToWorldXfms  = (impl_affine_t*)
+        omp_target_alloc(numInstances*sizeof(impl_affine_t),context->gpuID);
       d_hasActualTransform = (bool *)
         omp_target_alloc(numInstances*sizeof(bool),context->gpuID);
       d_hasAnyActualTransform = (bool *)
@@ -105,16 +104,33 @@ namespace dprt {
                         context->gpuID,
                         context->hostID);
 
-      if (transforms)
-        omp_target_memcpy(d_objectToWorldXfms,
-                          transforms,
-                          numInstances*sizeof(affine3d),
-                          0,0,
-                          context->gpuID,
-                          context->hostID);
-      box3d *d_instBounds = 0;
+      if (transforms) {
+        if (std::is_same<impl_affine_t,affine3d>()) {
+          // internal format is doubles (input format is _always_
+          // doubles!); just copy
+          omp_target_memcpy(d_objectToWorldXfms,
+                            transforms,
+                            numInstances*sizeof(impl_affine_t),
+                            0,0,
+                            context->gpuID,
+                            context->hostID);
+        } else {
+          // internal format is floats, but input format is (_always_!)
+          // doubles; convert to internal format first.
+          std::vector<impl_scalar_t> tmp(numInstances*12);
+          for (int i=0;i<tmp.size();i++)
+            tmp[i] = impl_scalar_t(((double *)transforms)[i]);
+          omp_target_memcpy(d_objectToWorldXfms,
+                            (impl_affine_t*)tmp.data(),
+                            numInstances*sizeof(impl_affine_t),
+                            0,0,
+                            context->gpuID,
+                            context->hostID);
+        }
+      }
+      impl_box_t *d_instBounds = 0;
       cudaMalloc((void**)&d_instBounds,
-                 numInstances*sizeof(box3d));
+                 numInstances*sizeof(impl_box_t));
 # pragma omp target device(context->gpuID)
 # pragma omp teams distribute parallel for
       for (int i=0;i<numInstances;i++)
@@ -146,21 +162,36 @@ namespace dprt {
                  cudaMemcpyDefault);
       
       cudaMalloc((void**)&d_worldToObjectXfms,
-                 numInstances*sizeof(affine3d));
+                 numInstances*sizeof(impl_affine_t));
       cudaMalloc((void**)&d_objectToWorldXfms,
-                 numInstances*sizeof(affine3d));
+                 numInstances*sizeof(impl_affine_t));
       cudaMalloc((void**)&d_hasActualTransform,
                  numInstances*sizeof(bool));
       cudaMalloc((void**)&d_hasAnyActualTransform,
                  1*sizeof(bool));
-      if (transforms)
+      if (transforms) {
+        if (std::is_same<impl_affine_t,affine3d>()) {
+          cudaMemcpy(d_objectToWorldXfms,
+                     transforms,
+                     numInstances*sizeof(impl_affine_t),
+                     cudaMemcpyDefault);
+        } else {
+          std::vector<impl_scalar_t> tmp(numInstances*12);
+          for (int i=0;i<tmp.size();i++)
+            tmp[i] = impl_scalar_t(((double *)transforms)[i]);
+          cudaMemcpy(d_objectToWorldXfms,
+                     (impl_affine_t*)tmp.data(),
+                     numInstances*sizeof(impl_affine_t),
+                     cudaMemcpyDefault);
+        }
         cudaMemcpy(d_objectToWorldXfms,
                    transforms,
-                   numInstances*sizeof(affine3d),
+                   numInstances*sizeof(impl_affine_t),
                    cudaMemcpyDefault);
-      box3d *d_instBounds = 0;
+      }
+      impl_box_t *d_instBounds = 0;
       cudaMalloc((void**)&d_instBounds,
-                 numInstances*sizeof(box3d));
+                 numInstances*sizeof(impl_box_t));
       hasAnyActualTransform = false;
       cudaMemcpy(d_hasAnyActualTransform,
                  &hasAnyActualTransform,
@@ -188,19 +219,19 @@ namespace dprt {
       ::cuBQL::BuildConfig buildConfig;
       buildConfig.maxAllowedLeafSize = 1;
 #if DPRT_OMP
-      std::vector<box3d> h_instBounds(numInstances);
+      std::vector<impl_box_t> h_instBounds(numInstances);
       omp_target_memcpy(h_instBounds.data(),
                         d_instBounds,
                         numInstances*sizeof(*d_instBounds),
                         0,0,context->hostID,context->gpuID);
-      bvh3d h_bvh;
+      impl_bvh_t h_bvh;
       cuBQL::cpu::spatialMedian(h_bvh,
                                 h_instBounds.data(),
                                 numInstances,
                                 buildConfig);
       bvh = h_bvh;
       // --
-      bvh.nodes = (bvh3d::Node *)
+      bvh.nodes = (typename impl_bvh_t::Node *)
         omp_target_alloc(bvh.numNodes*sizeof(*bvh.nodes),
                          context->gpuID);
       omp_target_memcpy(bvh.nodes,h_bvh.nodes,
@@ -279,12 +310,12 @@ namespace dprt {
       struct ObjectSpaceTravState {
         int instID = -1;
         InstanceGroup::InstancedObjectDD instance;
-        ::cuBQL::ray3d ray;
+        impl_ray_t ray;
       } objectSpace;
-      ::cuBQL::ray3d worldRay((const vec3d&)rays[tid].origin,
-                              (const vec3d&)rays[tid].direction,
-                              rays[tid].tMin,
-                              rays[tid].tMax);
+      impl_ray_t worldRay(impl_vec_t((const vec3d&)rays[tid].origin),
+                          impl_vec_t((const vec3d&)rays[tid].direction),
+                          impl_scalar_t(rays[tid].tMin),
+                          impl_scalar_t(rays[tid].tMax));
       
       auto intersectPrim
         = [&hit,&worldRay,&objectSpace,flags,dbg](uint32_t primID)
@@ -293,7 +324,7 @@ namespace dprt {
         RayTriangleIntersection isec;
         auto &group = objectSpace.instance.group;
         PrimRef prim = group.primRefs[primID];
-        const TriangleDP tri = group.getTriangle(prim);
+        const impl_triangle_t tri = group.getTriangle(prim);
 
         auto getNormal = [tri]() { return cross(tri.b-tri.a,tri.c-tri.a); };
         bool culled = false;
@@ -311,15 +342,16 @@ namespace dprt {
         return worldRay.tMax;
       };
       auto enterBlas = [world,worldRay,&objectSpace,dbg]
-        (cuBQL::ray3d &out_ray,
-         cuBQL::bvh3d &out_bvh,
+        (impl_ray_t &out_ray,
+         impl_bvh_t &out_bvh,
          int instID) 
       {
         objectSpace.instance = world.instancedGroups[instID];
         objectSpace.instID = instID;
         objectSpace.ray = worldRay;
         if (objectSpace.instance.hasXfm) {
-          affine3d worldToObjectXfm = world.worldToObjectXfms[instID];
+          impl_affine_t worldToObjectXfm
+            = world.worldToObjectXfms[instID];
           objectSpace.ray.origin
             = xfmPoint(worldToObjectXfm,worldRay.origin);
           objectSpace.ray.direction
@@ -366,10 +398,14 @@ namespace dprt {
       
       auto object_instance = world.instancedGroups[0];
 
-      ::cuBQL::ray3d worldRay((const vec3d&)rays[tid].origin,
-                              (const vec3d&)rays[tid].direction,
-                              rays[tid].tMin,
-                              rays[tid].tMax);
+      impl_ray_t worldRay(impl_vec_t((const vec3d&)rays[tid].origin),
+                          impl_vec_t((const vec3d&)rays[tid].direction),
+                          impl_scalar_t(rays[tid].tMin),
+                          impl_scalar_t(rays[tid].tMax));
+      // impl_ray_t worldRay((const vec3d&)rays[tid].origin,
+      //                     (const vec3d&)rays[tid].direction,
+      //                     rays[tid].tMin,
+      //                     rays[tid].tMax);
       
       auto intersectPrim
         = [&hit,&worldRay,object_instance,flags,dbg](uint32_t primID)
@@ -378,7 +414,7 @@ namespace dprt {
         RayTriangleIntersection isec;
         auto &group = object_instance.group;
         PrimRef prim = group.primRefs[primID];
-        const TriangleDP tri = group.getTriangle(prim);
+        const impl_triangle_t tri = group.getTriangle(prim);
 
         auto getNormal = [tri]() { return cross(tri.b-tri.a,tri.c-tri.a); };
         bool culled = false;

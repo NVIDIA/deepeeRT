@@ -21,13 +21,14 @@ namespace dprt {
       };
       struct DD {
         const InstancedObjectDD *instancedGroups;
-        const affine3d          *worldToObjectXfms;
+        const impl_affine_t     *worldToObjectXfms;
         const bool              *hasActualTransform;
-        bvh3d bvh;
+        impl_bvh_t               bvh;
       };
 
       InstanceGroup(Context *context,
                     const std::vector<dprt::TrianglesGroup *> &groups,
+                    // input is ALWAYS double
                     const affine3d *transforms);
       ~InstanceGroup() override;
       
@@ -44,9 +45,9 @@ namespace dprt {
       bool               hasAnyActualTransform = false;
       int                numInstances = 0;
       InstancedObjectDD *d_instanceDDs = 0;
-      affine3d          *d_worldToObjectXfms = 0;
+      impl_affine_t     *d_worldToObjectXfms = 0;
       // TODO - check if we even need those?
-      affine3d          *d_objectToWorldXfms = 0;
+      impl_affine_t     *d_objectToWorldXfms = 0;
       /*! one entry per instance; allows traversal to skip unnecessary
           transforms */
       bool              *d_hasActualTransform = 0;
@@ -54,7 +55,7 @@ namespace dprt {
           transform; allows to use a single-level transform if this is
           not the case */
       bool              *d_hasAnyActualTransform = 0;
-      bvh3d bvh;
+      impl_bvh_t bvh;
     };
     
   }

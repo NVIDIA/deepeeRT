@@ -4,6 +4,11 @@
 
 find_package(CUDAToolkit REQUIRED)
 
+# use at your own risk - this will trace rays as if they were floats,
+# which will be much faster BUT GENERALLY WRONG!
+option(DPRT_EXP_SP "experimental single-precision backend" OFF)
+mark_as_advanced(DPRT_EXP_SP)
+
 add_library(dprt_common INTERFACE
 )
 target_include_directories(dprt_common INTERFACE
@@ -17,6 +22,10 @@ target_link_libraries(dprt_common INTERFACE
 )
 target_compile_definitions(dprt_common INTERFACE
   -Ddprt_STATIC=1)
+if (DPRT_EXP_SP)
+  target_compile_definitions(dprt_common INTERFACE
+    -DDPRT_EXP_SP=1)
+endif()
 
 add_library(dprt STATIC
   ../include/dprt/dprt.h
