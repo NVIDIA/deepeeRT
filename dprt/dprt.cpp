@@ -39,7 +39,9 @@ DPRTTriangles dprtCreateTriangles(DPRTContext _context,
                                   size_t   vertexCount,
                                   /*! device array of int3 vertex indices */
                                   DPRTint3 *indexArray,
-                                  size_t   indexCount)
+                                  size_t   indexCount,
+                                  // currently ignoring the flags
+                                  uint64_t flags)
 {
   dprt::Context *context = (dprt::Context *)_context;
   assert(context);
@@ -70,9 +72,13 @@ DPRTGroup dprtCreateTrianglesGroup(DPRTContext   _context,
 
 DPRT_API
 DPRTModel dprtCreateModel(DPRTContext _context,
-                            DPRTGroup   *instanceGroups,
-                            DPRTAffine  *instanceTransforms,
-                            size_t      instanceCount)
+                          DPRTGroup   *instanceGroups,
+                          DPRTAffine  *instanceTransforms,
+                          size_t      instanceCount,
+                          // currently ignoring all flags
+                          uint64_t    flags
+                          )
+
 {
   dprt::Context *context = (dprt::Context *)_context;
   assert(context);

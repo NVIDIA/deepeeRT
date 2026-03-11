@@ -22,6 +22,7 @@ namespace dprt {
       struct DD {
         const InstancedObjectDD *instancedGroups;
         const affine3d          *worldToObjectXfms;
+        const bool              *hasActualTransform;
         bvh3d bvh;
       };
 
@@ -40,11 +41,19 @@ namespace dprt {
       /*! if this scene contains a single instance, and that has a
           unit transform, then it can be traced with a single-level,
           no instancing kernel */
-      bool               doesNotActuallyUseInstancing = false;
+      bool               hasAnyActualTransform = false;
       int                numInstances = 0;
       InstancedObjectDD *d_instanceDDs = 0;
       affine3d          *d_worldToObjectXfms = 0;
+      // TODO - check if we even need those?
       affine3d          *d_objectToWorldXfms = 0;
+      /*! one entry per instance; allows traversal to skip unnecessary
+          transforms */
+      bool              *d_hasActualTransform = 0;
+      /*! one single entry; specifies if there is _any_ non-trivial
+          transform; allows to use a single-level transform if this is
+          not the case */
+      bool              *d_hasAnyActualTransform = 0;
       bvh3d bvh;
     };
     

@@ -78,17 +78,35 @@ typedef struct _DPRTContext       *DPRTContext;
 
 typedef enum { DPRT_CONTEXT_GPU } DPRTContextType;
 
+/*! default value for any 'flags'-type function argument */
 #define DPRT_FLAGS_NONE (uint64_t(0))
+#define DPRT_FLAGS_DEFAULT DPRT_FLAGS_NONE
+
 /*! if enabled, we will skip all intersections with triangles whose
-  normal faces TOWARDS the origin (ie, cull iff dot(ray.dir,N)<0) */
+  normal faces TOWARDS the origin (ie, cull iff dot(ray.dir,N)<0).
+  Only applies to dprtTrace() */
 #define DPRT_CULL_FRONT (uint64_t(1ull<<0))
+
 /*! if enabled, we will skip all intersections with triangles whose
-  normal faces AWAY the origin (ie, cull iff dot(ray.dir,N)>0) */
+  normal faces AWAY the origin (ie, cull iff dot(ray.dir,N)>0).
+  Only applies to dprtTrace()  */
 #define DPRT_CULL_BACK  (uint64_t(1ull<<1))
 
+/*! only applies to flags that refer to a pointer to a data; specifies
+    that the app guarantees this pointer to point to 'persistent' data
+    that the app will neither change nor free (ie, dprt _can_ then
+    freely share this data with the app and does not have to create a
+    copy). Note this only specifies that dprt _can_ share this pointer
+    if it wants to, dprt may still make a copy if it so wants */
+#define DPRT_PERSISTENT_DATA 1ull
+
+/*! a three-tuple of 32-bit integer values, used to represent
+  vertex indices of a triangle mesh */
 struct DPRTint3 { int32_t x,y,z; };
+/*! a three-tuple of double-precision floats; used to represent
+  any sort of double-precision vector or point */
 struct DPRTvec3 { double  x,y,z; };
-struct DPRTvec4 { double  x,y,z,w; };
+// struct DPRTvec4 { double  x,y,z,w; };
 
 /*! affine transform matrix, for instances (with embree-style naming,
   'p' for the translation/offset part, 'l' for the linear
@@ -120,7 +138,7 @@ struct DPRTHit {
   /*! user-supplied geom ID (the one specified during geometry create
     call) for the geometry that contained the hit. Unlike primID and
     instID this is *not* a linear ID, but whatever int64 value the
-    user specified there. */
+    user specified when creating the geometry. */
   uint64_t geomUserData;
   /*! distance to hit. */
   double   t;
@@ -134,9 +152,13 @@ DPRTContext dprtContextCreate(DPRTContextType contextType,
 /*! a triangle mesh whose vertices are in double precision, to be used
   within a double-precision tracing context. This function will
   currently make a *copy* of those arrays to make sure the user
-  doesn't accidentally use host-side and/or temporary data. A future
-  version should arguably allow to specify whether this copy should or
-  shouldn't be done. */
+  doesn't accidentally use host-side and/or temporary data.
+
+  The `flags` argument allows the app to specify that the input vertex and
+  index arrays are 'persistent', and that dprt is thus free to share these
+  pointers without creating a copy. If that flag is specified dprt will
+  assume it applies to both vertex AND index arrays.
+*/
 DPRT_API
 DPRTTriangles dprtCreateTriangles(DPRTContext context,
                                   /*! a 64-bit user-provided data that
@@ -150,7 +172,9 @@ DPRTTriangles dprtCreateTriangles(DPRTContext context,
                                   size_t    vertexCount,
                                   /*! device array of int3 vertex indices */
                                   DPRTint3 *indexArray,
-                                  size_t    indexCount);
+                                  size_t    indexCount,
+                                  uint64_t  flags
+                                  DPRT_IF_CPP(= DPRT_FLAGS_DEFAULT));
 
 /*! create an object representing a group of one or more triangle
   meshes that can then get instantiated (dpr never directly
@@ -167,12 +191,38 @@ DPRTGroup dprtCreateTrianglesGroup(DPRTContext,
   instance is defined by a handle to the group it wants to
   instantaite, plus an associated transform that represents the
   object-to-model transform supposed to be applied to this
-  geometry. */
+  geometry. A 'null' instancetransform array will internally be
+  treated the same as a array will all unit transforms.
+
+  The `flags` argument allows the app to specify that the input vertex and
+  index arrays are 'persistent', and that dprt is thus free to share these
+  pointers without creating a copy. If that flag is specified dprt will
+  assume it applies to both vertex AND index arrays.
+*/
 DPRT_API
 DPRTModel dprtCreateModel(DPRTContext,
+                          /*! (host side) pointer to a array of instance
+                            group handles. These must be valid handles
+                            created through `dprtCreateTrianglesGroup()` 
+                          */
                           DPRTGroup  *instanceGroups,
+                          /*! host _or_ device side pointer to an
+                            array of instance transforms, in a
+                            double3x4 `DPRTAffine` data layout (one
+                            each per instanceGroup). A null value is
+                            allowed, and indicates that all instance
+                            transforms are unit transforms. If
+                            non-null this must point to
+                            `instanceCount` valid affine
+                            transformations.
+                          */
                           DPRTAffine *instanceTransforms,
-                          size_t      instanceCount);
+                          size_t      instanceCount,
+                          /*! allows to specify that the `instanceTransforms`
+                            array is a persistent data array that does
+                            not have to be copied */
+                          uint64_t  flags
+                          DPRT_IF_CPP(= DPRT_FLAGS_DEFAULT));
 
 /*! traces a set of rays against a previously computed model. */
 DPRT_API

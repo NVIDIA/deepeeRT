@@ -56,8 +56,8 @@ doubles, anyway).
 
 ## Copyright and License
 
-// Copyright 2025 NVIDIA Corp
-// SPDX-License-Identifier: Apache-2.0
+    // Copyright 2025 NVIDIA Corp
+    // SPDX-License-Identifier: Apache-2.0
 
 ## Building and Usage
 
