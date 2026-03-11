@@ -39,7 +39,7 @@ namespace dprt {
     using impl_triangle_t = cuBQL::triangle_t<impl_scalar_t>;
     using impl_ray_t = ::cuBQL::ray_t<impl_scalar_t>;
 
-    using RayTriangleIntersection = cuBQL::RayTriangleIntersection_t<impl_scalar_t>;
+    using impl_RayTriangleIntersection = cuBQL::RayTriangleIntersection_t<impl_scalar_t>;
     
 #if DPRT_OMP
 # define __dprt_global /* nothing */

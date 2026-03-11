@@ -4,13 +4,22 @@
 
 find_package(CUDAToolkit REQUIRED)
 
-# use at your own risk - this will trace rays as if they were floats,
+# use at your own risk!!!! this will trace rays as if they were floats,
 # which will be much faster BUT GENERALLY WRONG!
-option(DPRT_EXP_SP "experimental single-precision backend" OFF)
+option(DPRT_EXP_SP "Build experimental single-precision backend" OFF)
 mark_as_advanced(DPRT_EXP_SP)
 
-add_library(dprt_common INTERFACE
-)
+# use at your own risk!!!! this will trace rays as if they were
+# floats, which will be much faster BUT GENERALLY WRONG!
+option(DPRT_EXP_OWL "Build experimental owl backend " OFF)
+mark_as_advanced(DPRT_EXP_OWL)
+
+if (DPRT_EXP_OWL)
+  find_package(owl REQUIRED)
+endif()
+
+add_library(dprt_common INTERFACE)
+
 target_include_directories(dprt_common INTERFACE
   $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
   $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>/include
@@ -20,6 +29,7 @@ target_link_libraries(dprt_common INTERFACE
   CUDA::cuda_driver
   CUDA::cudart_static
 )
+
 target_compile_definitions(dprt_common INTERFACE
   -Ddprt_STATIC=1)
 if (DPRT_EXP_SP)
@@ -43,11 +53,16 @@ add_library(dprt STATIC
 target_include_directories(dprt PUBLIC
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
   $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>
-  )
+)
 
-add_subdirectory(cuBQL)
+if (DPRT_EXP_OWL)
+  add_subdirectory(owl)
+else()
+  add_subdirectory(cuBQL)
+endif()
+
 target_link_libraries(dprt PRIVATE
-  $<BUILD_INTERFACE:dprt_cuBQL>
+#  $<BUILD_INTERFACE:dprt_cuBQL>
   $<BUILD_INTERFACE:dprt_common>
 )
 

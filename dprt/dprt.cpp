@@ -12,11 +12,6 @@
 
 namespace dprt {
 
-  Context *Context::create(int gpuID)
-  {
-    return new cubql_cuda::CuBQLCUDABackend(gpuID);
-  };
-  
 } // ::dprt
 
 DPRT_API

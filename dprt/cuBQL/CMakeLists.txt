@@ -32,3 +32,7 @@ if (DPRT_OMP)
   target_compile_definitions(dprt_cuBQL PUBLIC -DDPRT_OMP=1)
   target_link_options(dprt_cuBQL PRIVATE "-fopenmp;-mp=gpu")
 endif()
+
+target_link_libraries(dprt PRIVATE
+  $<BUILD_INTERFACE:dprt_cuBQL>
+)

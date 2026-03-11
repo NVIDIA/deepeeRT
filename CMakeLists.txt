@@ -13,6 +13,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_CXX_STANDARD 20)
 
 option(DPRT_OMP "Enable experimental OpenMP build" OFF)
+
 mark_as_advanced(DPRT_OMP)
 
 cmake_minimum_required(VERSION 3.24)

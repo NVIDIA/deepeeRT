@@ -6,6 +6,10 @@
 #include "dprt/cuBQL/Triangles.h"
 
 namespace dprt {
+  extern "C" {
+    int dprt_dbg_rayID = -1;
+  }
+  
   namespace cubql_cuda {
 
     __dprt_global
@@ -291,16 +295,19 @@ namespace dprt {
                               DPRTRay *rays,
                               DPRTHit *hits,
                               size_t numRays,
-                              uint64_t flags)
+                              uint64_t flags,
+                              int dbgRayID)
     {
       int tid = kernel.workIdx();//threadIdx.x+blockIdx.x*blockDim.x;
       if (tid >= numRays) return;
 
+      if (rays[tid].tMax <= 0.) return;
+      
 #ifdef NDEBUG
       const bool dbg = false;
 #else
       // bool dbg = (tid == 512*1024+512);
-      bool dbg = false;
+      bool dbg = (tid == dbgRayID);
 #endif
 
       DPRTHit hit = hits[tid];
@@ -316,12 +323,13 @@ namespace dprt {
                           impl_vec_t((const vec3d&)rays[tid].direction),
                           impl_scalar_t(rays[tid].tMin),
                           impl_scalar_t(rays[tid].tMax));
-      
       auto intersectPrim
         = [&hit,&worldRay,&objectSpace,flags,dbg](uint32_t primID)
         -> double
       {
-        RayTriangleIntersection isec;
+        if (dbg)
+          printf("intersectPrim %i\n",primID);
+        impl_RayTriangleIntersection isec;
         auto &group = objectSpace.instance.group;
         PrimRef prim = group.primRefs[primID];
         const impl_triangle_t tri = group.getTriangle(prim);
@@ -332,12 +340,18 @@ namespace dprt {
           culled |= (dot(getNormal(),objectSpace.ray.direction) <= 0.);
         if (flags & DPRT_CULL_BACK)
           culled |= (dot(getNormal(),objectSpace.ray.direction) >= 0.);
-        if (!culled && isec.compute(objectSpace.ray,tri)) {
+        if (dbg)
+          printf("culled? %i\n",(int)culled);
+        
+        if (!culled && isec.compute(objectSpace.ray,tri,dbg)) {
           hit.primID = prim.primID;
           hit.instID = objectSpace.instID;
           hit.geomUserData = group.meshes[prim.geomID].userData;
           hit.t = isec.t;
           worldRay.tMax = isec.t;
+          objectSpace.ray.tMax = isec.t;
+          if (dbg)
+            printf("*** HIT *** at %lf\n",hit.t);
         }
         return worldRay.tMax;
       };
@@ -368,6 +382,9 @@ namespace dprt {
       
       ::cuBQL::shrinkingRayQuery::twoLevel::forEachPrim
           (enterBlas,leaveBlas,intersectPrim,world.bvh,worldRay,dbg);
+
+      if (dbg)
+        printf("REPORTED HIT DIST at %lf idx %i\n",hit.t,hit.primID);
       
       hits[tid] = hit;
     }
@@ -411,7 +428,7 @@ namespace dprt {
         = [&hit,&worldRay,object_instance,flags,dbg](uint32_t primID)
         -> double
       {
-        RayTriangleIntersection isec;
+        impl_RayTriangleIntersection isec;
         auto &group = object_instance.group;
         PrimRef prim = group.primRefs[primID];
         const impl_triangle_t tri = group.getTriangle(prim);
@@ -422,7 +439,7 @@ namespace dprt {
           culled |= (dot(getNormal(),worldRay.direction) <= 0.);
         if (flags & DPRT_CULL_BACK)
           culled |= (dot(getNormal(),worldRay.direction) >= 0.);
-        if (!culled && isec.compute(worldRay,tri)) {
+        if (!culled && isec.compute(worldRay,tri,dbg)) {
           hit.primID = prim.primID;
           hit.geomUserData = group.meshes[prim.geomID].userData;
           hit.instID = 0;//object_instance.instID;
@@ -473,14 +490,16 @@ namespace dprt {
           g_traceRays_twoLevel(Kernel{i},
                                getDD(),
                                d_rays,d_hits,numRays,
-                               flags);
+                               flags,
+                               dbg_rayID);
 #else
         int bs = 128;
         int nb = divRoundUp(numRays,bs);
         g_traceRays_twoLevel<<<nb,bs>>>(Kernel(),
                                         getDD(),
                                         d_rays,d_hits,numRays,
-                                        flags);
+                                        flags,
+                                        dprt_dbg_rayID);
         cudaDeviceSynchronize();
 #endif
       }
