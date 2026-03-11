@@ -22,7 +22,6 @@ namespace dprt {
       struct DD {
         const InstancedObjectDD *instancedGroups;
         const impl_affine_t     *worldToObjectXfms;
-        const bool              *hasActualTransform;
         impl_bvh_t               bvh;
       };
 
@@ -48,9 +47,6 @@ namespace dprt {
       impl_affine_t     *d_worldToObjectXfms = 0;
       // TODO - check if we even need those?
       impl_affine_t     *d_objectToWorldXfms = 0;
-      /*! one entry per instance; allows traversal to skip unnecessary
-          transforms */
-      bool              *d_hasActualTransform = 0;
       /*! one single entry; specifies if there is _any_ non-trivial
           transform; allows to use a single-level transform if this is
           not the case */

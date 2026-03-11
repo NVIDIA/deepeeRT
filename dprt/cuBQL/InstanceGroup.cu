@@ -20,7 +20,6 @@ namespace dprt {
                             impl_affine_t *worldToObjectXfms,
                             impl_affine_t *objectToWorldXfms,
                             impl_box_t *d_instBounds,
-                            bool *hasActualTransform,
                             bool *hasAnyActualTransform)
     {
       int tid = kernel.workIdx();//threadIdx.x+blockIdx.x*blockDim.x;
@@ -33,17 +32,10 @@ namespace dprt {
         xfm = objectToWorldXfms[tid];
       }
 
-      if (xfm == impl_affine_t()) {
-        hasActualTransform[tid] = false;
-        // do NOT set 'hasANY' field - this is pre-initialized t0
-        // false and will only ever flagged on by a kernel
-      } else {
-        hasActualTransform[tid] = true;
-        hasAnyActualTransform[tid] = true;
-      }
-      
       worldToObjectXfms[tid] = rcp(xfm);
       instances[tid].hasXfm = (xfm != impl_affine_t());
+      if (instances[tid].hasXfm)
+        *hasAnyActualTransform = true;
 
       impl_box_t objBounds = instances[tid].group.bvh.nodes[0].bounds;
       impl_vec_t b0 = objBounds.lower;
@@ -96,8 +88,6 @@ namespace dprt {
         omp_target_alloc(numInstances*sizeof(impl_affine_t),context->gpuID);
       d_objectToWorldXfms  = (impl_affine_t*)
         omp_target_alloc(numInstances*sizeof(impl_affine_t),context->gpuID);
-      d_hasActualTransform = (bool *)
-        omp_target_alloc(numInstances*sizeof(bool),context->gpuID);
       d_hasAnyActualTransform = (bool *)
         omp_target_alloc(1*sizeof(bool),context->gpuID);
       hasAnyActualTransform = false;
@@ -147,7 +137,6 @@ namespace dprt {
            d_worldToObjectXfms,
            d_objectToWorldXfms,
            d_instBounds,
-           d_hasActualTransform,
            d_hasAnyActualTransform
            );
 
@@ -169,8 +158,6 @@ namespace dprt {
                  numInstances*sizeof(impl_affine_t));
       cudaMalloc((void**)&d_objectToWorldXfms,
                  numInstances*sizeof(impl_affine_t));
-      cudaMalloc((void**)&d_hasActualTransform,
-                 numInstances*sizeof(bool));
       cudaMalloc((void**)&d_hasAnyActualTransform,
                  1*sizeof(bool));
       if (transforms) {
@@ -210,7 +197,6 @@ namespace dprt {
          d_worldToObjectXfms,
          d_objectToWorldXfms,
          d_instBounds,
-         d_hasActualTransform,
          d_hasAnyActualTransform
          );
       CUBQL_CUDA_SYNC_CHECK();
@@ -284,7 +270,6 @@ namespace dprt {
     {
       return { d_instanceDDs,
                d_worldToObjectXfms,
-               d_hasActualTransform,
                bvh };
     }
 
@@ -298,7 +283,7 @@ namespace dprt {
                               uint64_t flags,
                               int dbgRayID)
     {
-      int tid = kernel.workIdx();//threadIdx.x+blockIdx.x*blockDim.x;
+      int tid = kernel.workIdx();
       if (tid >= numRays) return;
 
       if (rays[tid].tMax <= 0.) return;
@@ -464,7 +449,7 @@ namespace dprt {
                                   int numRays,
                                   uint64_t flags)
     {
-      if (!hasAnyActualTransform) {
+      if (numInstances == 1 && !hasAnyActualTransform) {
 #if DPRT_OMP
 # pragma omp target device(context->gpuID)
 # pragma omp teams distribute parallel for
