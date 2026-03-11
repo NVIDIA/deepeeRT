@@ -22,7 +22,7 @@ namespace dprt {
     
     using namespace ::cuBQL;
 
-    using bvh3d = bvh_t<double,3>;
+    // using bvh3d = bvh_t<double,3>;
     using TriangleDP = cuBQL::triangle_t<double>;
     using cuBQL::affine3d;
 

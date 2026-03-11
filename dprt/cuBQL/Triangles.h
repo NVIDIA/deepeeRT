@@ -15,7 +15,8 @@ namespace dprt {
         vertices on the device */
     struct TriangleMesh : public dprt::TriangleMesh {
       struct DD {
-        inline __cubql_both impl_triangle_t getTriangle(uint32_t primID) const;
+        inline __cubql_both impl_triangle_t getTriangle(uint32_t primID,
+                                                        bool dbg) const;
         
         const impl_vec_t *vertices;
         const vec3i      *indices;
@@ -44,7 +45,7 @@ namespace dprt {
       struct DD {
         /*! return the triangle specified by the given primref */
         inline __cubql_both DD() = default;
-        inline __cubql_both impl_triangle_t getTriangle(PrimRef prim) const;
+        inline __cubql_both impl_triangle_t getTriangle(PrimRef prim, bool dbg=false) const;
         
         TriangleMesh::DD *meshes;
         PrimRef          *primRefs;
@@ -71,21 +72,28 @@ namespace dprt {
     };
 
     inline __cubql_both
-    impl_triangle_t TriangleMesh::DD::getTriangle(uint32_t primID) const
+    impl_triangle_t TriangleMesh::DD::getTriangle(uint32_t primID, bool dbg) const
     {
       vec3i idx = indices[primID];
+      if (dbg) dout << "triangle #" << primID << " indices " << idx << "\n";
       impl_triangle_t tri;
       tri.a = vertices[idx.x];
       tri.b = vertices[idx.y];
       tri.c = vertices[idx.z];
+
+      if (dbg) {
+        dout << " v0 " << tri.a << "\n";
+        dout << " v1 " << tri.b << "\n";
+        dout << " v2 " << tri.c << "\n";
+      }
       return tri;
     }
 
     inline __cubql_both
-    impl_triangle_t TrianglesGroup::DD::getTriangle(PrimRef prim) const
+    impl_triangle_t TrianglesGroup::DD::getTriangle(PrimRef prim, bool dbg) const
     {
       const TriangleMesh::DD &mesh = meshes[prim.geomID];
-      impl_triangle_t tri = mesh.getTriangle(prim.primID);
+      impl_triangle_t tri = mesh.getTriangle(prim.primID,dbg);
       return tri;
     }
     

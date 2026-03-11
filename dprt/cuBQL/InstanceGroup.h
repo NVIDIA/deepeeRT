@@ -28,7 +28,7 @@ namespace dprt {
       InstanceGroup(Context *context,
                     const std::vector<dprt::TrianglesGroup *> &groups,
                     // input is ALWAYS double
-                    const affine3d *transforms);
+                    const DPRTAffine *transforms);
       ~InstanceGroup() override;
       
       DD getDD() const;

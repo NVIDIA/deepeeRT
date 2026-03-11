@@ -11,7 +11,9 @@
 #include "dprt/cuBQL/CuBQLBackend.h"
 
 namespace dprt {
-
+  extern "C" {
+    int dprt_dbg_rayID = -1;
+  }
 } // ::dprt
 
 DPRT_API

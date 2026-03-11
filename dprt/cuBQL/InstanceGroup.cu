@@ -7,7 +7,7 @@
 
 namespace dprt {
   extern "C" {
-    int dprt_dbg_rayID = -1;
+    extern int dprt_dbg_rayID;
   }
   
   namespace cubql_cuda {
@@ -34,8 +34,9 @@ namespace dprt {
 
       worldToObjectXfms[tid] = rcp(xfm);
       instances[tid].hasXfm = (xfm != impl_affine_t());
-      if (instances[tid].hasXfm)
+      if (instances[tid].hasXfm) {
         *hasAnyActualTransform = true;
+      }
 
       impl_box_t objBounds = instances[tid].group.bvh.nodes[0].bounds;
       impl_vec_t b0 = objBounds.lower;
@@ -55,9 +56,8 @@ namespace dprt {
     InstanceGroup::
     InstanceGroup(Context *context,
                   const std::vector<dprt::TrianglesGroup *> &groups,
-                  const affine3d *transforms)
-      : dprt::InstanceGroup(context,groups,
-                            (const DPRTAffine *)transforms),
+                  const DPRTAffine *transforms)
+      : dprt::InstanceGroup(context,groups,transforms),
         numInstances((int)groups.size())
     {
 #if DPRT_OMP
@@ -175,10 +175,6 @@ namespace dprt {
                      numInstances*sizeof(impl_affine_t),
                      cudaMemcpyDefault);
         }
-        cudaMemcpy(d_objectToWorldXfms,
-                   transforms,
-                   numInstances*sizeof(impl_affine_t),
-                   cudaMemcpyDefault);
       }
       impl_box_t *d_instBounds = 0;
       cudaMalloc((void**)&d_instBounds,
@@ -317,7 +313,7 @@ namespace dprt {
         impl_RayTriangleIntersection isec;
         auto &group = objectSpace.instance.group;
         PrimRef prim = group.primRefs[primID];
-        const impl_triangle_t tri = group.getTriangle(prim);
+        const impl_triangle_t tri = group.getTriangle(prim,dbg);
 
         auto getNormal = [tri]() { return cross(tri.b-tri.a,tri.c-tri.a); };
         bool culled = false;
@@ -326,7 +322,7 @@ namespace dprt {
         if (flags & DPRT_CULL_BACK)
           culled |= (dot(getNormal(),objectSpace.ray.direction) >= 0.);
         if (dbg)
-          printf("culled? %i\n",(int)culled);
+          dout << "culled? " << (int)culled << "\n";
         
         if (!culled && isec.compute(objectSpace.ray,tri,dbg)) {
           hit.primID = prim.primID;
@@ -336,7 +332,7 @@ namespace dprt {
           worldRay.tMax = isec.t;
           objectSpace.ray.tMax = isec.t;
           if (dbg)
-            printf("*** HIT *** at %lf\n",hit.t);
+            dout << "*** HIT *** at " << hit.t << "\n";
         }
         return worldRay.tMax;
       };
@@ -369,7 +365,8 @@ namespace dprt {
           (enterBlas,leaveBlas,intersectPrim,world.bvh,worldRay,dbg);
 
       if (dbg)
-        printf("REPORTED HIT DIST at %lf idx %i\n",hit.t,hit.primID);
+        dout << "REPORTED HIT DIST at " << hit.t
+             << " idx " << hit.primID << "\n";
       
       hits[tid] = hit;
     }
@@ -382,7 +379,8 @@ namespace dprt {
                                  DPRTRay *rays,
                                  DPRTHit *hits,
                                  int numRays,
-                                 uint64_t flags)
+                                 uint64_t flags,
+                                 int dbg_rayID)
     {
       int tid = kernel.workIdx();//threadIdx.x+blockIdx.x*blockDim.x;
       if (tid >= numRays) return;
@@ -390,7 +388,7 @@ namespace dprt {
 #ifdef NDEBUG
       const bool dbg = false;
 #else
-      bool dbg = false;//(tid == 512*1024+512);
+      bool dbg = tid == dbg_rayID;
 #endif
 
       DPRTHit hit = hits[tid];
@@ -449,22 +447,26 @@ namespace dprt {
                                   int numRays,
                                   uint64_t flags)
     {
-      if (numInstances == 1 && !hasAnyActualTransform) {
+      bool forceInstances = false;
+      
+      if (!forceInstances && numInstances == 1 && !hasAnyActualTransform) {
 #if DPRT_OMP
 # pragma omp target device(context->gpuID)
 # pragma omp teams distribute parallel for
         for (int i=0;i<numRays;i++)
           g_traceRays_noInstances(Kernel{i},
-                                   getDD(),
-                                   d_rays,d_hits,numRays,
-                                   flags);
+                                  getDD(),
+                                  d_rays,d_hits,numRays,
+                                  flags,
+                                  dprt_dbg_rayID);
 #else
         int bs = 128;
         int nb = divRoundUp(numRays,bs);
         g_traceRays_noInstances<<<nb,bs>>>(Kernel(),
-                                            getDD(),
-                                            d_rays,d_hits,numRays,
-                                            flags);
+                                           getDD(),
+                                           d_rays,d_hits,numRays,
+                                           flags,
+                                           dprt_dbg_rayID);
         cudaDeviceSynchronize();
 #endif
       } else {

@@ -79,7 +79,7 @@ namespace dprt {
     createInstanceGroup(const std::vector<dprt::TrianglesGroup *> &groups,
                         const DPRTAffine *transforms)
     {
-      return new InstanceGroup(this, groups,(const affine3d*)transforms);
+      return new InstanceGroup(this, groups, transforms);
     }
     
     dprt::TriangleMesh *
