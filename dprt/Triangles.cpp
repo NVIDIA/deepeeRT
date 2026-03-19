@@ -1,10 +1,11 @@
-// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA
+// CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-#include "dp/Triangles.h"
-#include "dp/Context.h"
+#include "dprt/Triangles.h"
+#include "dprt/Context.h"
 
-namespace dp {
+namespace dprt {
   TriangleMesh::TriangleMesh(Context         *context,
                              uint64_t         userData,
                              const vec3d     *_vertexArray,
@@ -28,5 +29,5 @@ namespace dp {
        where required*/
   }
   
-} // ::dp
+} // ::dprt
 

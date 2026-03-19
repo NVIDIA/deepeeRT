@@ -1,60 +1,71 @@
-// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA
+// CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 #define CUBQL_GPU_BUILDER_IMPLEMENTATION 1
 #define CUBQL_CPU_BUILDER_IMPLEMENTATION 1
 
-#include "dp/cuBQL/CuBQLBackend.h"
-#include "dp/cuBQL/Triangles.h"
-#include "dp/cuBQL/InstanceGroup.h"
+#include "dprt/cuBQL/CuBQLBackend.h"
+#include "dprt/cuBQL/Triangles.h"
+#include "dprt/cuBQL/InstanceGroup.h"
 
-#ifdef DP_OMP
+#ifdef DPRT_OMP
 # include "cuBQL/builder/omp.h"
 // do NOT instantiate cuda builder
 namespace cuBQL {
+  using impl_scalar_t = dprt::cubql_cuda::impl_scalar_t;
   namespace omp {
     template
-    void spatialMedian(BinaryBVH<double,3>   &bvh,
-                       const box_t<double,3> *boxes,
+    void spatialMedian(BinaryBVH<impl_scalar_t,3>   &bvh,
+                       const box_t<impl_scalar_t,3> *boxes,
                        uint32_t          numPrims,
                        BuildConfig       buildConfig,
                        Context          *ctx);
     template
-    void freeBVH(BinaryBVH<double,3> &bvh,
+    void freeBVH(BinaryBVH<impl_scalar_t,3> &bvh,
                  Context          *ctx);
   }
 }
 #else
 namespace cuBQL {
+  using impl_scalar_t = dprt::cubql_cuda::impl_scalar_t;
   namespace cpu {
     template
-    void spatialMedian(BinaryBVH<double,3>   &bvh,
-                       const box_t<double,3> *boxes,
+    void spatialMedian(BinaryBVH<impl_scalar_t,3>   &bvh,
+                       const box_t<impl_scalar_t,3> *boxes,
                        uint32_t          numPrims,
                        BuildConfig       buildConfig);
     template
-    void freeBVH(BinaryBVH<double,3> &bvh);
+    void freeBVH(BinaryBVH<impl_scalar_t,3> &bvh);
 
   }
   namespace cuda {
     template
-    void sahBuilder(BinaryBVH<double,3>   &bvh,
-                    const box_t<double,3> *boxes,
+    void sahBuilder(BinaryBVH<impl_scalar_t,3>   &bvh,
+                    const box_t<impl_scalar_t,3> *boxes,
                     uint32_t          numPrims,
                     BuildConfig       buildConfig,
                     cudaStream_t       s,
                     cuBQL::GpuMemoryResource &memResource);
 
     template
-    void free(BinaryBVH<double,3> &bvh,
+    void free(BinaryBVH<impl_scalar_t,3> &bvh,
               cudaStream_t      s,
               GpuMemoryResource& memResource);
   }
 }
 #endif
 
-namespace dp {
+namespace dprt {
+
+  Context *Context::create(int gpuID)
+  {
+    return new cubql_cuda::CuBQLCUDABackend(gpuID);
+  };
+  
+  
   namespace cubql_cuda {
+    
     CuBQLCUDABackend::CuBQLCUDABackend(int gpuID)
       : Context(gpuID)
     {
@@ -63,15 +74,15 @@ namespace dp {
     }
 
 
-    dp::InstanceGroup *
+    dprt::InstanceGroup *
     CuBQLCUDABackend::
-    createInstanceGroup(const std::vector<dp::TrianglesGroup *> &groups,
-                        const DPRAffine *transforms)
+    createInstanceGroup(const std::vector<dprt::TrianglesGroup *> &groups,
+                        const DPRTAffine *transforms)
     {
-      return new InstanceGroup(this, groups,(const affine3d*)transforms);
+      return new InstanceGroup(this, groups, transforms);
     }
     
-    dp::TriangleMesh *
+    dprt::TriangleMesh *
     CuBQLCUDABackend::
     createTriangleMesh(uint64_t         userData,
                        const vec3d     *vertexArray,
@@ -87,14 +98,14 @@ namespace dp {
                               indexCount);
     }
     
-    dp::TrianglesGroup *
+    dprt::TrianglesGroup *
     CuBQLCUDABackend::
-    createTrianglesGroup(const std::vector<dp::TriangleMesh *> &geoms)
+    createTrianglesGroup(const std::vector<dprt::TriangleMesh *> &geoms)
     {
       return new TrianglesGroup(this,geoms);
     }
-  } // :: cubql_cuda
-  
-}
+    
+  } // ::cubql_cuda
+} // ::drpt
 
   

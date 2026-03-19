@@ -27,10 +27,37 @@ reordering, denoising, etc. Instead, this library intentionally
 focusses on only tracing rays, reading rays from a device-array of
 rays, and filling in a corresponding device array of hits.
 
+## Changes in 1.x
+
+When initially conceived the naming scheme used in this library
+generally built on the abbreviation of "DPRT" for "Double Precision
+Ray Tracing", and on the way that DP is generally pronouced as "dee
+pee". However, it used this general idea in many different and
+inconstent ways---API types and functions started with
+`dpr<Function>()` and `DPR<Type>` (some actually used `DP<Type>`...),
+constants with `DPR_`; namespace was `dprt::`; main subdir name was
+`dp/`; repo name, library name, and install dir name was `deepeeRT`;
+some C and CMake constants used `DEEPEERT` and some `DEEPEE`; etc.
+
+For 1.0, this has undergone a significant cleanup: The repo name
+cannot easily be changed, but pretty much everything else has changed
+to 'dprt': install directory is now `dprt/`, as is the main source
+dir; install target name is now also `dprt`, so apps should now use
+`find_package(dprt)` and link to `dprt::dprt`. Installed header file
+is `dprt/dprt.h`.. Finally, API names are now:
+for types `DPRT<Type>`, for functions `dprt<Function>()`,
+and for all constants and enums `DPRT_<constant>`.
+
+For 1.0 we also renamed the `world` to be a `model` (to become more
+consistent with other graphics APIs); we have also deprecated the
+`_DP` vs `_SP` suffix naming scheme that was used for showing which
+functions used double vs single precision arguments (`dprt` only uses
+doubles, anyway).
+
 ## Copyright and License
 
-// Copyright 2025 NVIDIA Corp
-// SPDX-License-Identifier: Apache-2.0
+    // Copyright 2025 NVIDIA Corp
+    // SPDX-License-Identifier: Apache-2.0
 
 ## Building and Usage
 

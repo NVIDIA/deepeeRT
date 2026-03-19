@@ -1,13 +1,14 @@
-// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA
+// CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
 
-#include "dp/common.h"
-#include "dp/Backend.h"
+#include "dprt/common.h"
+#include "dprt/Backend.h"
 #include <memory>
 
-namespace dp {
+namespace dprt {
 
   struct InstanceGroup;
   struct TriangleMesh;
@@ -21,13 +22,13 @@ namespace dp {
     /*! creates a 'world' as a grouping of triangle mesh groups, with
         associated object-to-world space instance
         transforms. Implements the dprTrace() API function */
-    virtual dp::InstanceGroup *
-    createInstanceGroup(const std::vector<dp::TrianglesGroup *> &groups,
-                        const DPRAffine *transforms) = 0;
+    virtual dprt::InstanceGroup *
+    createInstanceGroup(const std::vector<dprt::TrianglesGroup *> &groups,
+                        const DPRTAffine *transforms) = 0;
 
     /*! creates an object that represents a single triangle
         mesh. implements `dprCreateTrianglesDP()` */
-    virtual dp::TriangleMesh *
+    virtual dprt::TriangleMesh *
     createTriangleMesh(uint64_t         userData,
                        const vec3d     *vertexArray,
                        int              vertexCount,
@@ -37,15 +38,17 @@ namespace dp {
     /*! creates an object that represents a group of multiple triangle
         meshes that can then get instantiated. implements
         `dprCreateTrianglesGroup()` */
-    virtual dp::TrianglesGroup *
-    createTrianglesGroup(const std::vector<dp::TriangleMesh *> &geoms) = 0;
+    virtual dprt::TrianglesGroup *
+    createTrianglesGroup(const std::vector<dprt::TriangleMesh *> &geoms) = 0;
     
     
     /*! the cuda gpu ID that this device is going to run on */
     int const gpuID;
-#ifdef DP_OMP
+    /*! openmp host id. in theory only need this for the openmp
+        backend, but don't want to have this as a conditional compile
+        in the parent class that might get derived in different
+        backends */
     int hostID = -1;
-#endif
   };
   
 } // ::dp

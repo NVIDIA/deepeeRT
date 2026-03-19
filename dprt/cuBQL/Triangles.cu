@@ -1,25 +1,26 @@
-// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA
+// CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-#include "dp/cuBQL/Triangles.h"
+#include "dprt/cuBQL/Triangles.h"
 
-namespace dp {
+namespace dprt {
   namespace cubql_cuda {
 
     /*! triangle mesh representation on the device */
-    __dp_global
+    __dprt_global
     void generateTriangleInputs(Kernel   kernel,
                                 int      meshID,
                                 PrimRef *primRefs,
-                                box3d   *primBounds,
+                                impl_box_t *primBounds,
                                 int      numTrisThisMesh,
                                 TriangleMesh::DD mesh)
     {
-      int tid = kernel.workIdx();//threadIdx.x+blockIdx.x*blockDim.x;
+      int tid = kernel.workIdx();
       if (tid >= numTrisThisMesh) return;
 
       vec3i idx = mesh.indices[tid];
-      box3d bb;
+      impl_box_t bb;
       bb.extend(mesh.vertices[idx.x]);
       bb.extend(mesh.vertices[idx.y]);
       bb.extend(mesh.vertices[idx.z]);
@@ -34,7 +35,7 @@ namespace dp {
                                int              vertexCount,
                                const vec3i     *indexArray,
                                int              indexCount)
-      : dp::TriangleMesh(context,userData,
+      : dprt::TriangleMesh(context,userData,
                          vertexArray,vertexCount,
                          indexArray,indexCount),
         vertices(context,vertexArray,vertexCount),
@@ -42,8 +43,8 @@ namespace dp {
     {}
     
     TrianglesGroup::TrianglesGroup(Context *context,
-                                   const std::vector<dp::TriangleMesh *> &meshes)
-      : dp::TrianglesGroup(context,meshes)
+                                   const std::vector<dprt::TriangleMesh *> &meshes)
+      : dprt::TrianglesGroup(context,meshes)
     {
 #ifndef DP_OMP
       CUBQL_CUDA_SYNC_CHECK();
@@ -56,7 +57,7 @@ namespace dp {
         devMeshes.push_back(geom->getDD());
         numTrisTotal += geom->indices.count;
       }
-      box3d   *d_primBounds = nullptr;
+      impl_box_t   *d_primBounds = nullptr;
 #ifdef DP_OMP
       d_meshDDs
         = (TriangleMesh::DD*)
@@ -71,7 +72,7 @@ namespace dp {
         = (PrimRef*)omp_target_alloc(numTrisTotal*sizeof(*d_primRefs),
                                      context->gpuID);
       d_primBounds
-        = (box3d*)omp_target_alloc(numTrisTotal*sizeof(*d_primBounds),
+        = (impl_box_t*)omp_target_alloc(numTrisTotal*sizeof(*d_primBounds),
                                      context->gpuID);
 #else
       cudaMalloc((void **)&d_meshDDs,
@@ -120,21 +121,21 @@ namespace dp {
                         0,0,
                         context->hostID,
                         context->gpuID);
-      std::vector<box3d> h_primBounds(numTrisTotal);
+      std::vector<impl_box_t> h_primBounds(numTrisTotal);
       omp_target_memcpy(h_primBounds.data(),d_primBounds,
                         h_primBounds.size()*sizeof(h_primBounds[0]),
                         0,0,
                         context->hostID,
                         context->gpuID);
 
-      bvh3d h_bvh;
+      impl_bvh_t h_bvh;
       cuBQL::cpu::spatialMedian(h_bvh,
                                 h_primBounds.data(),
                                 numTrisTotal,
                                 ::cuBQL::BuildConfig());
       bvh = h_bvh;
       // --
-      bvh.nodes = (bvh3d::Node *)
+      bvh.nodes = (typename impl_bvh_t::Node *)
         omp_target_alloc(bvh.numNodes*sizeof(*bvh.nodes),
                          context->gpuID);
       omp_target_memcpy(bvh.nodes,h_bvh.nodes,

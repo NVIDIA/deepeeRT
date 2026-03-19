@@ -3,28 +3,27 @@
 
 cmake_minimum_required(VERSION 3.24)
 
-set(DEEPEERT_VERSION_MAJOR 0)
-set(DEEPEERT_VERSION_MINOR 4)
-set(DEEPEERT_VERSION_PATCH 1)
-set(DEEPEERT_VERSION ${DEEPEERT_VERSION_MAJOR}.${DEEPEERT_VERSION_MINOR}.${DEEPEERT_VERSION_PATCH})
+set(DPRT_VERSION_MAJOR 0)
+set(DPRT_VERSION_MINOR 6)
+set(DPRT_VERSION_PATCH 0)
+set(DPRT_VERSION ${DPRT_VERSION_MAJOR}.${DPRT_VERSION_MINOR}.${DPRT_VERSION_PATCH})
   
 set(CMAKE_BUILD_TYPE_INIT "Release")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_CXX_STANDARD 20)
 
-option(DEEPEERT_OMP "Enable experimental OpenMP build" OFF)
-mark_as_advanced(DEEPEERT_OMP)
+option(DPRT_OMP "Enable experimental OpenMP build" OFF)
+
+mark_as_advanced(DPRT_OMP)
 
 cmake_minimum_required(VERSION 3.24)
 cmake_policy(SET CMP0048 NEW)
-if (DEEPEERT_OMP)
-  project(DeePeeRT VERSION ${DEEPEERT_VERSION} LANGUAGES C CXX)
-#  set(DEEPEERT_OMP_FLAGS CACHE STRING "-mp=gpu")
-#  set(CMAKE_CXX_FLAGS ${DEEPEERT_OMP_FLAGS})
+if (DPRT_OMP)
+  project(DPRT VERSION ${DPRT_VERSION} LANGUAGES C CXX)
   set(CUBQL_DISABLE_CUDA ON)
 else()
   set(CMAKE_CUDA_ARCHITECTURES native)
-  project(DeePeeRT VERSION ${DEEPEERT_VERSION} LANGUAGES C CXX CUDA)
+  project(DPRT VERSION ${DPRT_VERSION} LANGUAGES C CXX CUDA)
 endif()
 
 if(NOT SET_UP_CONFIGURATIONS_DONE)
@@ -50,20 +49,20 @@ if ((${CMAKE_CURRENT_SOURCE_DIR} STREQUAL ${CMAKE_SOURCE_DIR}))
   SET(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
 endif()
 
-option(DEEPEERT_USE_LOCAL_CUBQL "Use *local* cuBQL" OFF)
-mark_as_advanced(DEEPEERT_USE_LOCAL_CUBQL)
-if (DEEPEERT_USE_LOCAL_CUBQL)
+option(DPRT_USE_LOCAL_CUBQL "Use *local* cuBQL" OFF)
+mark_as_advanced(DPRT_USE_LOCAL_CUBQL)
+if (DPRT_USE_LOCAL_CUBQL)
   add_subdirectory(../cuBQL EXCLUDE_FROM_ALL builddir_cuBQL)
 else()
   add_subdirectory(submodules/cuBQL EXCLUDE_FROM_ALL builddir_cuBQL)
 endif()
 
-add_subdirectory(dp)
+add_subdirectory(dprt)
 
 if (NOT (${CMAKE_CURRENT_SOURCE_DIR} STREQUAL ${CMAKE_SOURCE_DIR}))
   # don't build miniapp if this is a subproject
 else()
-  # disabled: requires to be able to do find_package(deepeeRT), which
+  # disabled: requires to be able to do find_package(dprt), which
   # isn't supported in CI yet.
   #
   add_subdirectory(miniapp)
@@ -76,46 +75,46 @@ endif()
 
 include(GNUInstallDirs)
 
-set(DEEPEERT_CMAKE_INSTALL_DESTINATION
-  ${CMAKE_INSTALL_LIBDIR}/cmake/deepeeRT-${DEEPEERT_VERSION}#${PROJECT_VERSION}
+set(DPRT_CMAKE_INSTALL_DESTINATION
+  ${CMAKE_INSTALL_LIBDIR}/cmake/dprt-${DPRT_VERSION}#${PROJECT_VERSION}
 )
 
 include(CMakePackageConfigHelpers)
 
 configure_package_config_file(
-  "${PROJECT_SOURCE_DIR}/dp/deepeeRTConfig.cmake.in"
-  "${PROJECT_BINARY_DIR}/deepeeRTConfig.cmake"
+  "${PROJECT_SOURCE_DIR}/dprt/dprtConfig.cmake.in"
+  "${PROJECT_BINARY_DIR}/dprtConfig.cmake"
   INSTALL_DESTINATION
-  ${DEEPEERT_CMAKE_INSTALL_DESTINATION}
+  ${DPRT_CMAKE_INSTALL_DESTINATION}
 )
 
-message("DEEPEERT_VERSION ${DEEPEERT_VERSION}")
+message("DPRT_VERSION ${DPRT_VERSION}")
 write_basic_package_version_file(
-    "deepeeRTConfigVersion.cmake"
-    VERSION ${DEEPEERT_VERSION}
+    "dprtConfigVersion.cmake"
+    VERSION ${DPRT_VERSION}
     COMPATIBILITY SameMajorVersion
 )
 
 install(FILES
-  ${CMAKE_CURRENT_BINARY_DIR}/deepeeRTConfig.cmake
-  ${CMAKE_CURRENT_BINARY_DIR}/deepeeRTConfigVersion.cmake
+  ${CMAKE_CURRENT_BINARY_DIR}/dprtConfig.cmake
+  ${CMAKE_CURRENT_BINARY_DIR}/dprtConfigVersion.cmake
   DESTINATION
-  ${DEEPEERT_CMAKE_INSTALL_DESTINATION}
+  ${DPRT_CMAKE_INSTALL_DESTINATION}
   )
 
 
 install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/cmake
   DESTINATION
-    ${DEEPEERT_CMAKE_INSTALL_DESTINATION}
+    ${DPRT_CMAKE_INSTALL_DESTINATION}
   FILES_MATCHING
     PATTERN *.cmake
-    PATTERN FinddeepeeRT.cmake EXCLUDE
+    PATTERN Finddprt.cmake EXCLUDE
 )
 
 install(
   TARGETS
-  deepeeRT
-  EXPORT deepeeRT-config
+  dprt
+  EXPORT dprt-config
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   NAMELINK_SKIP
   # on Windows put the dlls into bin
@@ -123,20 +122,20 @@ install(
   # ... and the import lib into the devel package
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
-install(EXPORT deepeeRT-config
-#install(EXPORT deepeeRT
-  DESTINATION ${DEEPEERT_CMAKE_INSTALL_DESTINATION}
-  NAMESPACE deepeeRT::
+install(EXPORT dprt-config
+  DESTINATION ${DPRT_CMAKE_INSTALL_DESTINATION}
+  NAMESPACE dprt::
   )
 
-# configures the public api
 configure_file(
-  ${PROJECT_SOURCE_DIR}/include/deepeeRT/deepeeRT.in.h
-  include/deepeeRT/deepeeRT.h
+  # the _source_ file still has old name, but this file will only
+  # ever get seen by cmake, so this can be renamed at a later point.
+  ${PROJECT_SOURCE_DIR}/include/dprt/dprt.in.h
+  include/dprt/dprt.h
 )
-
 install(
-  DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include/deepeeRT
+  DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include/dprt
   DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}
 )
+
 
