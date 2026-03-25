@@ -46,7 +46,7 @@ namespace dprt {
                                    const std::vector<dprt::TriangleMesh *> &meshes)
       : dprt::TrianglesGroup(context,meshes)
     {
-#ifndef DP_OMP
+#ifndef DPRT_OMP
       CUBQL_CUDA_SYNC_CHECK();
       SetActiveGPU forDuration(context->gpuID);
 #endif
@@ -58,7 +58,7 @@ namespace dprt {
         numTrisTotal += geom->indices.count;
       }
       impl_box_t   *d_primBounds = nullptr;
-#ifdef DP_OMP
+#ifdef DPRT_OMP
       d_meshDDs
         = (TriangleMesh::DD*)
         omp_target_alloc(devMeshes.size()*sizeof(TriangleMesh::DD),
@@ -89,7 +89,7 @@ namespace dprt {
       for (int meshID=0;meshID<(int)meshes.size();meshID++) {
         TriangleMesh *mesh = (TriangleMesh *)meshes[meshID];
         int count = mesh->indices.count;
-#if DP_OMP
+#if DPRT_OMP
 # pragma omp target device(context->gpuID)
 # pragma omp teams distribute parallel for
         for (int i=0;i<count;i++)
@@ -112,7 +112,7 @@ namespace dprt {
 #endif
         offset += count;
       }
-#if DP_OMP
+#if DPRT_OMP
       // temporarily copy all back to host because we need to use
       // cubql host builder...
       std::vector<PrimRef> h_primRefs(numTrisTotal);
@@ -185,7 +185,7 @@ namespace dprt {
   
     TrianglesGroup::~TrianglesGroup()
     {
-#if DP_OMP
+#if DPRT_OMP
       omp_target_free(bvh.primIDs,context->gpuID);
       omp_target_free(bvh.nodes,context->gpuID);
       omp_target_free(d_meshDDs,context->gpuID);

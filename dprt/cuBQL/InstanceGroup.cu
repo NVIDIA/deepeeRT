@@ -380,7 +380,7 @@ namespace dprt {
                                  DPRTHit *hits,
                                  int numRays,
                                  uint64_t flags,
-                                 int dbg_rayID)
+                                 int dprt_dbg_rayID)
     {
       int tid = kernel.workIdx();//threadIdx.x+blockIdx.x*blockDim.x;
       if (tid >= numRays) return;
@@ -388,7 +388,7 @@ namespace dprt {
 #ifdef NDEBUG
       const bool dbg = false;
 #else
-      bool dbg = tid == dbg_rayID;
+      bool dbg = tid == dprt_dbg_rayID;
 #endif
 
       DPRTHit hit = hits[tid];
@@ -478,7 +478,7 @@ namespace dprt {
                                getDD(),
                                d_rays,d_hits,numRays,
                                flags,
-                               dbg_rayID);
+                               dprt_dbg_rayID);
 #else
         int bs = 128;
         int nb = divRoundUp(numRays,bs);
