@@ -122,7 +122,7 @@ namespace dprt {
       this->count = count;
       this->elements = (T*)omp_target_alloc(count*sizeof(T),
                                             context->gpuID);
-      if (std::is_same<T,INPUT_T>) {
+      if (std::is_same<T,INPUT_T>()) {
         omp_target_memcpy((void*)this->elements,(void*)elements,
                           count*sizeof(T),
                           0,0,
