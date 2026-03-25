@@ -90,6 +90,7 @@ namespace dprt {
         TriangleMesh *mesh = (TriangleMesh *)meshes[meshID];
         int count = mesh->indices.count;
 #if DPRT_OMP
+        TriangleMesh::DD meshDD = mesh->getDD();
 # pragma omp target device(context->gpuID)
 # pragma omp teams distribute parallel for
         for (int i=0;i<count;i++)
@@ -98,8 +99,7 @@ namespace dprt {
                                  d_primRefs+offset,
                                  d_primBounds+offset,
                                  count,
-                                 mesh->getDD());
-        PING;
+                                 meshDD);
 #else
         int bs = 128;
         int nb = divRoundUp(count,bs);
